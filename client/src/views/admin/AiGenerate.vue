@@ -115,7 +115,7 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const router = useRouter();
 const loading = ref(false);
@@ -161,7 +161,7 @@ const submitGenerate = async () => {
       formData.append('referenceFile', referenceFile.value);
     }
 
-    const res = await axios.post('/api/exams/generate', formData, {
+    const res = await api.post('/exams/generate', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 

@@ -7,6 +7,8 @@ import examRoutes from './routes/examRoutes.js';
 import qrRoutes from './routes/qrRoutes.js';
 import submissionRoutes from './routes/submissionRoutes.js';
 import configRoutes from './routes/configRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 dotenv.config();
@@ -20,6 +22,8 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
+app.use('/api/auth', authRoutes);
+app.use('/api/orders', orderRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/qr', qrRoutes);
 app.use('/api/submissions', submissionRoutes);

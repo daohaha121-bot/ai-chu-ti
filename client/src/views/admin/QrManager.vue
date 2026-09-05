@@ -101,7 +101,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import QrcodeVue from 'qrcode.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const qrList = ref([]);
 const examOptions = ref([]);
@@ -121,8 +121,8 @@ const fetchData = async () => {
   loading.value = true;
   try {
     const [qrRes, examRes] = await Promise.all([
-      axios.get('/api/qr'),
-      axios.get('/api/exams')
+      api.get('/qr'),
+      api.get('/exams')
     ]);
     if (qrRes.data.success) qrList.value = qrRes.data.data;
     if (examRes.data.success) examOptions.value = examRes.data.data;
@@ -139,7 +139,7 @@ const createQr = async () => {
   }
 
   try {
-    const res = await axios.post('/api/qr', newQrForm);
+    const res = await api.post('/qr', newQrForm);
     if (res.data.success) {
       ElMessage.success('动态活码创建成功！');
       showCreateDialog.value = false;
@@ -154,7 +154,7 @@ const createQr = async () => {
 
 const updateQrExam = async (qr) => {
   try {
-    await axios.put(`/api/qr/${qr.id}`, { examId: qr.examId });
+    await api.put(`/qr/${qr.id}`, { examId: qr.examId });
     ElMessage.success('已即时更新活码关联的试卷！');
   } catch (err) {
     ElMessage.error('关联调整失败');
@@ -163,7 +163,7 @@ const updateQrExam = async (qr) => {
 
 const updateQrStatus = async (qr) => {
   try {
-    await axios.put(`/api/qr/${qr.id}`, { isActive: qr.isActive });
+    await api.put(`/qr/${qr.id}`, { isActive: qr.isActive });
     ElMessage.success(`活码已 ${qr.isActive ? '开启' : '停用'}`);
   } catch (err) {
     ElMessage.error('状态更新失败');
@@ -175,7 +175,7 @@ const deleteQr = async (id) => {
     await ElMessageBox.confirm('确定要删除此活码吗？删除后已打印的二维码将失效。', '删除警告', {
       type: 'warning'
     });
-    await axios.delete(`/api/qr/${id}`);
+    await api.delete(`/qr/${id}`);
     ElMessage.success('活码删除成功');
     fetchData();
   } catch (err) {

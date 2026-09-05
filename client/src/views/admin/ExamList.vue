@@ -70,7 +70,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const exams = ref([]);
 const loading = ref(false);
@@ -78,7 +78,7 @@ const loading = ref(false);
 const fetchExams = async () => {
   loading.value = true;
   try {
-    const res = await axios.get('/api/exams');
+    const res = await api.get('/exams');
     if (res.data.success) {
       exams.value = res.data.data;
     }
@@ -91,7 +91,7 @@ const fetchExams = async () => {
 
 const handleStatusChange = async (row) => {
   try {
-    await axios.put(`/api/exams/${row.id}`, { status: row.status });
+    await api.put(`/exams/${row.id}`, { status: row.status });
     ElMessage.success(`试卷已切换为 ${row.status === 'active' ? '开启' : '关闭'}`);
   } catch (err) {
     ElMessage.error('状态更新失败');
@@ -105,7 +105,7 @@ const deleteExam = async (id) => {
       confirmButtonText: '确定删除',
       cancelButtonText: '取消'
     });
-    await axios.delete(`/api/exams/${id}`);
+    await api.delete(`/exams/${id}`);
     ElMessage.success('删除成功');
     fetchExams();
   } catch (err) {

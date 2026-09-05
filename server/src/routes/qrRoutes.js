@@ -1,14 +1,25 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
 import crypto from 'crypto';
+import { parseToken } from './authRoutes.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-// 获取所有动态活码
+// 获取所有动态活码（区分开发者模式与创作者模式）
 router.get('/', async (req, res) => {
   try {
+    const session = parseToken(req.headers.authorization);
+    let whereClause = {};
+
+    if (!session || session.role !== 'developer') {
+      if (session && session.userId) {
+        whereClause = { OR: [{ userId: session.userId }, { userId: null }] };
+      }
+    }
+
     const qrCodes = await prisma.qRCode.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
         exam: {
@@ -25,11 +36,13 @@ router.get('/', async (req, res) => {
 // 创建新活码
 router.post('/', async (req, res) => {
   try {
+    const session = parseToken(req.headers.authorization);
     const { title, examId, customLogo, expireAt } = req.body;
     const codeKey = 'qr_' + crypto.randomBytes(6).toString('hex');
 
     const newQr = await prisma.qRCode.create({
       data: {
+        userId: session ? session.userId : null,
         codeKey,
         title: title || '未命名活码',
         examId: examId || null,
@@ -109,13 +122,11 @@ router.get('/redirect/:codeKey', async (req, res) => {
       return res.status(403).json({ success: false, message: '当前二维码未关联合适的在线试卷' });
     }
 
-    // 增加扫码计数
     await prisma.qRCode.update({
       where: { id: qr.id },
       data: { scanCount: { increment: 1 } }
     });
 
-    // 隐藏题目答案防作弊泄露（在全量解析开关关闭时）
     const examRules = JSON.parse(qr.exam.examRules || '{}');
     const safeQuestions = qr.exam.questions.map(q => ({
       id: q.id,
@@ -123,8 +134,7 @@ router.get('/redirect/:codeKey', async (req, res) => {
       stem: q.stem,
       options: q.options ? JSON.parse(q.options) : null,
       score: q.score,
-      orderIndex: q.orderIndex,
-      // 不直接在扫码阶段透传标准答案给前端防抓包
+      orderIndex: q.orderIndex
     }));
 
     res.json({

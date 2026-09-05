@@ -7,6 +7,7 @@ import ExamEditor from '../views/admin/ExamEditor.vue';
 import QrManager from '../views/admin/QrManager.vue';
 import Analytics from '../views/admin/Analytics.vue';
 import Settings from '../views/admin/Settings.vue';
+import DeveloperCenter from '../views/admin/DeveloperCenter.vue';
 
 import ExamPlay from '../views/student/ExamPlay.vue';
 import ExamResult from '../views/student/ExamResult.vue';
@@ -25,6 +26,7 @@ const routes = [
       { path: 'exam-editor/:id', name: 'ExamEditor', component: ExamEditor, meta: { title: '试卷二次编辑' } },
       { path: 'qr-manager', name: 'QrManager', component: QrManager, meta: { title: '动态活码管理' } },
       { path: 'analytics/:examId', name: 'Analytics', component: Analytics, meta: { title: '答题数据分析与导出' } },
+      { path: 'developer', name: 'DeveloperCenter', component: DeveloperCenter, meta: { title: '开发者变现中心' } },
       { path: 'settings', name: 'Settings', component: Settings, meta: { title: '平台品牌与付费设置' } }
     ]
   },

@@ -7,8 +7,41 @@ datasource db {
   url      = "file:./dev.db"
 }
 
+model User {
+  id          String    @id @default(uuid())
+  openid      String?   @unique
+  nickname    String    @default("创作者用户")
+  avatar      String?
+  role        String    @default("user") // "developer" 或 "user"
+  freeQuota   Int       @default(3)      // 免费出题额度，默认赠送3次
+  isVip       Boolean   @default(false)  // 是否是 VIP
+  vipExpireAt DateTime?                  // VIP 到期时间
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  exams       Exam[]
+  qrCodes     QRCode[]
+  orders      Order[]
+}
+
+model Order {
+  id            String    @id @default(uuid())
+  orderNo       String    @unique
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType      String    // "vip_month", "vip_year", "quota_10"
+  planName      String
+  amount        Float
+  status        String    @default("paid") // "pending", "paid"
+  paymentMethod String    @default("wechat")
+  createdAt     DateTime  @default(now())
+  paidAt        DateTime?
+}
+
 model Exam {
   id              String       @id @default(uuid())
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   title           String
   description     String?
   durationMinutes Int          @default(0)
@@ -39,6 +72,8 @@ model Question {
 
 model QRCode {
   id         String    @id @default(uuid())
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   codeKey    String    @unique
   title      String
   examId     String?
@@ -69,4 +104,5 @@ model SystemConfig {
   logoUrl       String?
   watermarkText String?
   paymentConfig String?
+  pricingPlans  String? // JSON: VIP 与额度套餐配置
 }

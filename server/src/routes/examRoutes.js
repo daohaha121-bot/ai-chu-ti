@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { PrismaClient } from '@prisma/client';
 import { generateExamWithAI, parseFileContent } from '../services/aiService.js';
+import { parseToken } from './authRoutes.js';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -14,9 +15,25 @@ if (!fs.existsSync(uploadDir)) {
 }
 const upload = multer({ dest: uploadDir });
 
-// AI 出题生成接口
+// AI 出题生成接口（校验额度与 VIP 权限）
 router.post('/generate', upload.single('referenceFile'), async (req, res) => {
   try {
+    const session = parseToken(req.headers.authorization);
+    let currentUser = null;
+
+    if (session && session.userId) {
+      currentUser = await prisma.user.findUnique({ where: { id: session.userId } });
+      if (currentUser && currentUser.role !== 'developer' && !currentUser.isVip) {
+        if (currentUser.freeQuota <= 0) {
+          return res.status(403).json({
+            success: false,
+            code: 'QUOTA_EXPIRED',
+            message: '您的免费出题额度已用完，请升级开通 VIP 畅享无限出题！'
+          });
+        }
+      }
+    }
+
     const {
       title,
       topic,
@@ -50,6 +67,7 @@ router.post('/generate', upload.single('referenceFile'), async (req, res) => {
 
     const newExam = await prisma.exam.create({
       data: {
+        userId: currentUser ? currentUser.id : null,
         title: aiResult.title || title || 'AI 智能试卷',
         description: aiResult.description || '基于 AI 自动生成的综合试卷',
         passScore: parseFloat(aiResult.passScore) || 60,
@@ -78,6 +96,14 @@ router.post('/generate', upload.single('referenceFile'), async (req, res) => {
       }
     });
 
+    // 扣减非 VIP 用户的免费出题额度
+    if (currentUser && currentUser.role !== 'developer' && !currentUser.isVip) {
+      await prisma.user.update({
+        where: { id: currentUser.id },
+        data: { freeQuota: { decrement: 1 } }
+      });
+    }
+
     res.json({ success: true, data: newExam });
   } catch (error) {
     console.error('AI 出题失败:', error);
@@ -85,12 +111,23 @@ router.post('/generate', upload.single('referenceFile'), async (req, res) => {
   }
 });
 
-// 获取所有试卷列表
+// 获取试卷列表（开发者看全站，普通创作者只看自己）
 router.get('/', async (req, res) => {
   try {
+    const session = parseToken(req.headers.authorization);
+    let whereClause = {};
+
+    if (!session || session.role !== 'developer') {
+      if (session && session.userId) {
+        whereClause = { OR: [{ userId: session.userId }, { userId: null }] };
+      }
+    }
+
     const exams = await prisma.exam.findMany({
+      where: whereClause,
       orderBy: { createdAt: 'desc' },
       include: {
+        user: { select: { nickname: true, role: true } },
         _count: {
           select: { questions: true, submissions: true, qrCodes: true }
         }
