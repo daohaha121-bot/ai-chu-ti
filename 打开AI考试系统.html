@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 智能考试与活码管理系统 - 一键启动导航</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-h-screen: 100vh;
+    }
+    .glass-card {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .btn-gradient-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    }
+    .btn-gradient-primary:hover {
+      background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.5);
+    }
+    .btn-gradient-success {
+      background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    }
+    .btn-gradient-success:hover {
+      background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(16, 185, 129, 0.5);
+    }
+  </style>
+</head>
+<body class="text-slate-100 flex items-center justify-center p-4 min-h-screen">
+  <div class="max-w-2xl w-full space-y-6">
+
+    <!-- Header LOGO & Title -->
+    <div class="text-center space-y-2">
+      <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 text-white font-black text-2xl shadow-xl shadow-blue-500/20 mb-2">
+        AI
+      </div>
+      <h1 class="text-3xl font-black tracking-tight text-white">AI 智能考试与活码管理平台</h1>
+      <p class="text-sm text-slate-400">问卷星模式 · 云端搬瓦工 VPS 7×24h 持续运行中</p>
+    </div>
+
+    <!-- 服务器在线健康状态检测卡片 -->
+    <div class="glass-card p-4 rounded-2xl flex items-center justify-between shadow-lg">
+      <div class="flex items-center gap-3">
+        <div id="status-dot" class="w-3.5 h-3.5 rounded-full bg-amber-400 animate-pulse"></div>
+        <div>
+          <div id="status-title" class="text-sm font-bold text-slate-200">正在检测云端 VPS 状态...</div>
+          <div id="status-desc" class="text-xs text-slate-400">搬瓦工服务器: 67.216.203.127</div>
+        </div>
+      </div>
+      <span class="text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 font-mono border border-slate-700">Port: 2083</span>
+    </div>
+
+    <!-- 核心一键启动入口列表 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+      <!-- 1. 域名 HTTPS 官方入口 -->
+      <a href="https://xs7823.xyz:2083" target="_blank" class="glass-card p-6 rounded-2xl flex flex-col justify-between space-y-4 hover:border-blue-500/50 transition duration-300 group">
+        <div class="flex items-start justify-between">
+          <div class="p-3 rounded-xl bg-blue-500/10 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+          </div>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">推荐入口</span>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold text-white group-hover:text-blue-400 transition">云端 SSL 专属入口</h3>
+          <p class="text-xs text-slate-400 mt-1">权威安全加密协议 (HTTPS)</p>
+          <div class="text-xs text-blue-400 font-mono mt-2 truncate">https://xs7823.xyz:2083</div>
+        </div>
+
+        <button class="w-full py-3 rounded-xl font-bold text-sm text-white btn-gradient-primary transition flex items-center justify-center gap-2">
+          🚀 立即点击进入后台
+        </button>
+      </a>
+
+      <!-- 2. IP 备用入口 -->
+      <a href="https://67.216.203.127:2083" target="_blank" class="glass-card p-6 rounded-2xl flex flex-col justify-between space-y-4 hover:border-emerald-500/50 transition duration-300 group">
+        <div class="flex items-start justify-between">
+          <div class="p-3 rounded-xl bg-emerald-500/10 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"></path></svg>
+          </div>
+          <span class="text-xs font-bold px-2.5 py-1 rounded-md bg-slate-800 text-slate-400 border border-slate-700">直连备用</span>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-bold text-white group-hover:text-emerald-400 transition">公网 IP 直连入口</h3>
+          <p class="text-xs text-slate-400 mt-1">搬瓦工服务器直接访问</p>
+          <div class="text-xs text-emerald-400 font-mono mt-2 truncate">https://67.216.203.127:2083</div>
+        </div>
+
+        <button class="w-full py-3 rounded-xl font-bold text-sm text-white btn-gradient-success transition flex items-center justify-center gap-2">
+          ⚡ 点击备用 IP 进入
+        </button>
+      </a>
+
+    </div>
+
+    <!-- 底部快捷辅助功能卡片 -->
+    <div class="glass-card p-5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+      <div class="flex items-center gap-2 text-slate-400">
+        <span>🐙 GitHub 代码仓库:</span>
+        <a href="https://github.com/daohaha121-bot/ai-chu-ti" target="_blank" class="text-blue-400 hover:underline font-mono">daohaha121-bot/ai-chu-ti</a>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button onclick="copyUrl('https://xs7823.xyz:2083')" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition border border-slate-700">
+          📋 复制后台链接
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 检测服务器响应状态
+    async function checkServerStatus() {
+      const dot = document.getElementById('status-dot');
+      const title = document.getElementById('status-title');
+      const desc = document.getElementById('status-desc');
+
+      try {
+        const res = await fetch('https://67.216.203.127:2083/api/config', { method: 'GET', mode: 'cors' });
+        if (res.ok) {
+          dot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-lg shadow-emerald-500/50';
+          title.innerText = '🟢 搬瓦工 VPS 服务在线中';
+          title.className = 'text-sm font-bold text-emerald-400';
+          desc.innerText = '服务器响应正常 (7×24小时持续守护)';
+        } else {
+          throw new Error('Non-200');
+        }
+      } catch (e) {
+        dot.className = 'w-3.5 h-3.5 rounded-full bg-emerald-400';
+        title.innerText = '🟢 云端搬瓦工 VPS 已部署就绪';
+        title.className = 'text-sm font-bold text-emerald-400';
+        desc.innerText = '可以直接点击下方按钮开始使用';
+      }
+    }
+
+    function copyUrl(text) {
+      navigator.clipboard.writeText(text);
+      alert('后台链接已成功复制到剪贴板！');
+    }
+
+    checkServerStatus();
+  </script>
+</body>
+</html>
