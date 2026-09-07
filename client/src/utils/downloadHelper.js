@@ -85,12 +85,17 @@ export function downloadQrCodeFromContainer(containerOrId, filename = '考试二
 }
 
 /**
- * 获取考试扫码标准安全链接（自动剥离非标8080端口，优先使用标准80端口或自定义域名）
+ * 获取考试扫码标准安全链接（优先使用 Cloudflare 域名/自定义域名，走 HTTPS 防封锁与无感直达）
  */
 export function getExamScanUrl(codeKey, customDomain = '') {
   if (!codeKey) return '';
-  if (customDomain && customDomain.trim()) {
-    const base = customDomain.trim().replace(/\/+$/, '');
+  // 优先使用传入的域名、配置的域名，或自动选用已绑定的 Cloudflare CDN 域名
+  const domain = (customDomain && customDomain.trim())
+    || localStorage.getItem('customDomain')
+    || (window.location.hostname === '67.216.203.127' || window.location.hostname.includes('xs7823.xyz') ? 'https://exam.xs7823.xyz' : '');
+
+  if (domain && domain.trim()) {
+    const base = domain.trim().replace(/\/+$/, '');
     return `${base}/exam/${codeKey}`;
   }
   const protocol = window.location.protocol;
@@ -101,3 +106,4 @@ export function getExamScanUrl(codeKey, customDomain = '') {
     : `:${window.location.port}`;
   return `${protocol}//${hostname}${port}/exam/${codeKey}`;
 }
+
