@@ -246,7 +246,7 @@ import ExamPosterModal from '../../components/ExamPosterModal.vue';
 import CopyAnswersModal from '../../components/CopyAnswersModal.vue';
 import api from '../../utils/api';
 import axios from 'axios';
-import { downloadQrCodeFromContainer } from '../../utils/downloadHelper';
+import { downloadQrCodeFromContainer, getExamScanUrl } from '../../utils/downloadHelper';
 
 const route = useRoute();
 const router = useRouter();
@@ -261,8 +261,7 @@ const currentQrCodeKey = computed(() => {
 });
 
 const getScanUrl = (codeKey) => {
-  if (!codeKey) return '';
-  return `${window.location.origin}/exam/${codeKey}`;
+  return getExamScanUrl(codeKey);
 };
 
 const copyScanUrl = (codeKey) => {

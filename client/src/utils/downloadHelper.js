@@ -83,3 +83,21 @@ export function downloadQrCodeFromContainer(containerOrId, filename = '考试二
   downloadCanvas(exportCanvas, filename);
   return true;
 }
+
+/**
+ * 获取考试扫码标准安全链接（自动剥离非标8080端口，优先使用标准80端口或自定义域名）
+ */
+export function getExamScanUrl(codeKey, customDomain = '') {
+  if (!codeKey) return '';
+  if (customDomain && customDomain.trim()) {
+    const base = customDomain.trim().replace(/\/+$/, '');
+    return `${base}/exam/${codeKey}`;
+  }
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  // 关键优化：自动去除 8080 端口，转为标准 80/443 端口，防止手机 5G 运营商屏蔽非标端口
+  const port = (window.location.port === '8080' || !window.location.port || window.location.port === '80' || window.location.port === '443')
+    ? ''
+    : `:${window.location.port}`;
+  return `${protocol}//${hostname}${port}/exam/${codeKey}`;
+}

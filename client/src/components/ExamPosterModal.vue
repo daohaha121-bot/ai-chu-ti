@@ -180,7 +180,7 @@ import { ElMessage } from 'element-plus';
 import QrcodeVue from 'qrcode.vue';
 import html2canvas from 'html2canvas';
 import api from '../utils/api';
-import { downloadCanvas, downloadQrCodeFromContainer } from '../utils/downloadHelper';
+import { downloadCanvas, downloadQrCodeFromContainer, getExamScanUrl } from '../utils/downloadHelper';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -220,8 +220,7 @@ const qrCodeKey = computed(() => {
 });
 
 const getScanUrl = (codeKey) => {
-  if (!codeKey) return '';
-  return `${window.location.origin}/exam/${codeKey}`;
+  return getExamScanUrl(codeKey);
 };
 
 const copyScanUrl = (codeKey) => {

@@ -17,12 +17,15 @@
           <el-input v-model="config.logoUrl" placeholder="输入 Logo 图片的绝对或相对 URL 地址" />
         </el-form-item>
 
-        <el-form-item label="导出试卷/成绩单的防伪水印文本">
-          <el-input v-model="config.watermarkText" placeholder="例如：由 AI 智能考试平台安全认证" />
+        <el-form-item label="移动端扫码访问根地址 / 自定义域名 (重要)">
+          <el-input v-model="config.customDomain" placeholder="例如：http://67.216.203.127 或 https://exam.yourdomain.com（留空则自动默认使用标准 80 端口）" />
+          <div class="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-lg mt-1.5 leading-relaxed">
+            💡 <b>微信扫码防拦截说明</b>：微信内置扫一扫对纯 IP 地址会有安全拦截提示。如果您拥有自己的域名，请在此填入您的域名（如 <code>https://exam.yourdomain.com</code>），系统生成的二维码将全面切换为域名编码，微信扫码即可秒进考场，不再提示 IP 安全警告！
+          </div>
         </el-form-item>
 
         <div class="pt-4 border-t flex justify-end">
-          <el-button type="primary" @click="saveConfig">保存品牌标识设置</el-button>
+          <el-button type="primary" @click="saveConfig">保存品牌与域名设置</el-button>
         </div>
       </el-form>
     </el-card>
@@ -85,7 +88,8 @@ import axios from 'axios';
 const config = reactive({
   platformName: 'AI 智能考试平台',
   logoUrl: '',
-  watermarkText: 'AI 考试系统出品'
+  watermarkText: 'AI 考试系统出品',
+  customDomain: ''
 });
 
 const paymentConfig = reactive({
@@ -104,6 +108,7 @@ const fetchConfig = async () => {
       config.platformName = data.platformName;
       config.logoUrl = data.logoUrl || '';
       config.watermarkText = data.watermarkText || '';
+      config.customDomain = data.customDomain || '';
       if (data.paymentConfig) {
         Object.assign(paymentConfig, data.paymentConfig);
       }
@@ -119,9 +124,10 @@ const saveConfig = async () => {
       platformName: config.platformName,
       logoUrl: config.logoUrl,
       watermarkText: config.watermarkText,
+      customDomain: config.customDomain,
       paymentConfig
     });
-    ElMessage.success('系统品牌与付费配置保存成功！');
+    ElMessage.success('系统品牌与域名配置保存成功！');
   } catch (err) {
     ElMessage.error('保存配置失败');
   }

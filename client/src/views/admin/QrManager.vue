@@ -121,7 +121,7 @@ import QrcodeVue from 'qrcode.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import api from '../../utils/api';
 import ExamPosterModal from '../../components/ExamPosterModal.vue';
-import { downloadQrCodeFromContainer } from '../../utils/downloadHelper';
+import { downloadQrCodeFromContainer, getExamScanUrl } from '../../utils/downloadHelper';
 
 const qrList = ref([]);
 const examOptions = ref([]);
@@ -153,7 +153,7 @@ const newQrForm = reactive({
 });
 
 const getScanUrl = (codeKey) => {
-  return `${window.location.origin}/exam/${codeKey}`;
+  return getExamScanUrl(codeKey);
 };
 
 const fetchData = async () => {

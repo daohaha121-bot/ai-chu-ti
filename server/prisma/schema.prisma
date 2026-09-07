@@ -105,4 +105,5 @@ model SystemConfig {
   watermarkText String?
   paymentConfig String?
   pricingPlans  String? // JSON: VIP 与额度套餐配置
+  customDomain  String? // 自定义扫码公网域名/根地址，如 https://exam.example.com
 }

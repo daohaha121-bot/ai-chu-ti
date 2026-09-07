@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
 // 更新系统品牌与支付设置
 router.put('/', async (req, res) => {
   try {
-    const { platformName, logoUrl, watermarkText, paymentConfig } = req.body;
+    const { platformName, logoUrl, watermarkText, paymentConfig, customDomain } = req.body;
 
     const updated = await prisma.systemConfig.upsert({
       where: { id: 'default' },
@@ -42,6 +42,7 @@ router.put('/', async (req, res) => {
         platformName,
         logoUrl,
         watermarkText,
+        customDomain,
         paymentConfig: typeof paymentConfig === 'string' ? paymentConfig : JSON.stringify(paymentConfig)
       },
       create: {
@@ -49,6 +50,7 @@ router.put('/', async (req, res) => {
         platformName: platformName || 'AI 智能考试平台',
         logoUrl,
         watermarkText,
+        customDomain,
         paymentConfig: typeof paymentConfig === 'string' ? paymentConfig : JSON.stringify(paymentConfig || { enabled: false })
       }
     });
