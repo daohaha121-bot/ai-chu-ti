@@ -33,6 +33,46 @@ router.get('/', async (req, res) => {
   }
 });
 
+// 根据试卷 ID 获取二维码（若无则即时自动生成并返回）
+router.get('/by-exam/:examId', async (req, res) => {
+  try {
+    const session = parseToken(req.headers.authorization);
+    let qr = await prisma.qRCode.findFirst({
+      where: { examId: req.params.examId },
+      include: {
+        exam: {
+          select: { id: true, title: true, totalScore: true, passScore: true }
+        }
+      }
+    });
+
+    if (!qr) {
+      const exam = await prisma.exam.findUnique({ where: { id: req.params.examId } });
+      if (!exam) return res.status(404).json({ success: false, message: '试卷不存在' });
+
+      const codeKey = 'qr_' + crypto.randomBytes(6).toString('hex');
+      qr = await prisma.qRCode.create({
+        data: {
+          userId: exam.userId || (session ? session.userId : null),
+          codeKey,
+          title: exam.title + ' 专属答题码',
+          examId: exam.id,
+          isActive: true
+        },
+        include: {
+          exam: {
+            select: { id: true, title: true, totalScore: true, passScore: true }
+          }
+        }
+      });
+    }
+
+    res.json({ success: true, data: qr });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 创建新活码
 router.post('/', async (req, res) => {
   try {

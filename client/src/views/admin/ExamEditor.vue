@@ -5,10 +5,16 @@
         <el-button @click="$router.push('/admin/exams')">← 返回试卷库</el-button>
         <h3 class="text-lg font-bold text-gray-900">试卷二次编辑器 & 考试防作弊规则配置</h3>
       </div>
-      <el-button type="primary" size="large" @click="saveExam">
-        <el-icon class="mr-1"><Check /></el-icon>
-        保存修改并更新试卷
-      </el-button>
+      <div class="flex items-center gap-3">
+        <el-button type="warning" plain size="large" @click="openQrDialog">
+          <el-icon class="mr-1"><FullScreen /></el-icon>
+          考试二维码
+        </el-button>
+        <el-button type="primary" size="large" @click="saveExam">
+          <el-icon class="mr-1"><Check /></el-icon>
+          保存修改并更新试卷
+        </el-button>
+      </div>
     </div>
 
     <!-- 试卷基本属性与考试防作弊规则 -->
@@ -131,6 +137,36 @@
         </div>
       </div>
     </div>
+
+    <!-- 试卷专属答题二维码弹窗 -->
+    <el-dialog v-model="showQrDialog" :title="'📱 ' + exam.title + ' - 专属答题二维码'" width="480px" center>
+      <div class="text-center py-2 space-y-4" v-loading="qrLoading">
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-sm mx-auto flex flex-col items-center shadow-inner space-y-3">
+          <div class="bg-white p-3 rounded-xl border shadow-sm" id="editor-exam-qr-box">
+            <qrcode-vue v-if="currentQrCode" :value="getScanUrl(currentQrCode.codeKey)" :size="160" level="H" />
+          </div>
+          <div class="text-xs text-slate-500 font-medium">微信或手机扫码即答</div>
+
+          <div class="w-full flex items-center gap-2">
+            <el-input :model-value="getScanUrl(currentQrCode?.codeKey)" readonly size="small" />
+            <el-button size="small" type="primary" plain @click="copyScanUrl(currentQrCode?.codeKey)">
+              复制链接
+            </el-button>
+          </div>
+
+          <div class="flex items-center gap-2 w-full">
+            <el-button size="small" type="success" plain class="flex-1" @click="openH5Preview(currentQrCode?.codeKey)">
+              <el-icon class="mr-1"><View /></el-icon>
+              模拟答题
+            </el-button>
+            <el-button size="small" type="primary" plain class="flex-1" @click="downloadQrCode('editor-exam-qr-box', exam.title)">
+              <el-icon class="mr-1"><Download /></el-icon>
+              下载图片
+            </el-button>
+          </div>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
@@ -138,11 +174,65 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import QrcodeVue from 'qrcode.vue';
+import api from '../../utils/api';
 import axios from 'axios';
 
 const route = useRoute();
 const router = useRouter();
 const loading = ref(false);
+
+const showQrDialog = ref(false);
+const currentQrCode = ref(null);
+const qrLoading = ref(false);
+
+const getScanUrl = (codeKey) => {
+  if (!codeKey) return '';
+  return `${window.location.origin}/exam/${codeKey}`;
+};
+
+const copyScanUrl = (codeKey) => {
+  if (!codeKey) return;
+  navigator.clipboard.writeText(getScanUrl(codeKey));
+  ElMessage.success('答题链接已复制到剪贴板！');
+};
+
+const openH5Preview = (codeKey) => {
+  if (!codeKey) return;
+  window.open(getScanUrl(codeKey), '_blank');
+};
+
+const downloadQrCode = (elementId, title) => {
+  const container = document.getElementById(elementId);
+  const canvas = container?.querySelector('canvas');
+  if (!canvas) return ElMessage.warning('未能获取二维码画布');
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title || '考试'}_二维码.png`;
+  a.click();
+  ElMessage.success('二维码图片已下载！');
+};
+
+const openQrDialog = async () => {
+  if (!exam.id) return;
+  showQrDialog.value = true;
+  qrLoading.value = true;
+  currentQrCode.value = null;
+
+  try {
+    const res = await api.get(`/qr/by-exam/${exam.id}`);
+    if (res.data.success && res.data.data) {
+      currentQrCode.value = res.data.data;
+    } else {
+      ElMessage.error(res.data.message || '获取二维码失败');
+    }
+  } catch (err) {
+    ElMessage.error('获取二维码失败');
+  } finally {
+    qrLoading.value = false;
+  }
+};
 
 const exam = reactive({
   id: '',

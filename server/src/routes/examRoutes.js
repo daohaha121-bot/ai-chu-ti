@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { generateExamWithAI, parseFileContent } from '../services/aiService.js';
 import { parseToken } from './authRoutes.js';
@@ -104,7 +105,19 @@ router.post('/generate', upload.single('referenceFile'), async (req, res) => {
       });
     }
 
-    res.json({ success: true, data: newExam });
+    // 自动为新生成的试卷创建专属动态活码
+    const codeKey = 'qr_' + crypto.randomBytes(6).toString('hex');
+    const qrCode = await prisma.qRCode.create({
+      data: {
+        userId: currentUser ? currentUser.id : null,
+        codeKey,
+        title: newExam.title + ' 专属答题码',
+        examId: newExam.id,
+        isActive: true
+      }
+    });
+
+    res.json({ success: true, data: newExam, qrCode });
   } catch (error) {
     console.error('AI 出题失败:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -128,6 +141,7 @@ router.get('/', async (req, res) => {
       orderBy: { createdAt: 'desc' },
       include: {
         user: { select: { nickname: true, role: true } },
+        qrCodes: { select: { id: true, codeKey: true, scanCount: true, isActive: true } },
         _count: {
           select: { questions: true, submissions: true, qrCodes: true }
         }

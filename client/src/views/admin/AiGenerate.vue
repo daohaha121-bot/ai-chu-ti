@@ -88,22 +88,50 @@
     </el-card>
 
     <!-- 生成成功提示弹窗 -->
-    <el-dialog v-model="showSuccessDialog" title="✨ 试卷生成成功！" width="500px" center>
-      <div class="text-center py-4 space-y-3">
-        <el-icon class="text-5xl text-green-500"><SuccessFilled /></el-icon>
+    <el-dialog v-model="showSuccessDialog" title="🎉 试卷生成成功并已生成答题二维码！" width="540px" center>
+      <div class="text-center py-2 space-y-3">
         <h3 class="font-bold text-lg text-gray-800">{{ generatedExam?.title }}</h3>
-        <p class="text-sm text-gray-500">已自动生成 {{ generatedExam?.questions?.length || 0 }} 道试题，总分 {{ generatedExam?.totalScore }} 分。</p>
+        <p class="text-xs text-gray-500">
+          已自动生成 <span class="font-bold text-blue-600">{{ generatedExam?.questions?.length || 0 }}</span> 道试题，总分 <span class="font-bold text-green-600">{{ generatedExam?.totalScore }}</span> 分
+        </p>
+
+        <!-- 专属二维码展示卡片 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-sm mx-auto flex flex-col items-center shadow-inner space-y-3">
+          <div class="bg-white p-3 rounded-xl border shadow-sm" id="ai-generate-qr-box">
+            <qrcode-vue :value="getScanUrl(generatedQr?.codeKey)" :size="160" level="H" />
+          </div>
+          <div class="text-xs text-slate-500 font-medium">微信或手机扫码即刻答题</div>
+
+          <!-- 链接与复制 -->
+          <div class="w-full flex items-center gap-2">
+            <el-input :model-value="getScanUrl(generatedQr?.codeKey)" readonly size="small" />
+            <el-button size="small" type="primary" plain @click="copyScanUrl(generatedQr?.codeKey)">
+              复制链接
+            </el-button>
+          </div>
+
+          <!-- 模拟体验与下载 -->
+          <div class="flex items-center gap-2 w-full">
+            <el-button size="small" type="success" plain class="flex-1" @click="openH5Preview(generatedQr?.codeKey)">
+              <el-icon class="mr-1"><View /></el-icon>
+              模拟手机答题
+            </el-button>
+            <el-button size="small" type="primary" plain class="flex-1" @click="downloadQrCode('ai-generate-qr-box', generatedExam?.title)">
+              <el-icon class="mr-1"><Download /></el-icon>
+              保存二维码图片
+            </el-button>
+          </div>
+        </div>
       </div>
 
       <template #footer>
-        <div class="flex justify-center gap-3">
+        <div class="flex justify-center gap-3 pt-2 border-t">
           <el-button type="primary" plain @click="gotoEdit">
             <el-icon class="mr-1"><Edit /></el-icon>
-            在线二次编辑
+            进入在线二次编辑
           </el-button>
-          <el-button type="primary" @click="gotoQr">
-            <el-icon class="mr-1"><FullScreen /></el-icon>
-            绑定活码并生成二维码
+          <el-button @click="$router.push('/admin/exams')">
+            查看全部试卷
           </el-button>
         </div>
       </template>
@@ -115,12 +143,14 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import QrcodeVue from 'qrcode.vue';
 import api from '../../utils/api';
 
 const router = useRouter();
 const loading = ref(false);
 const showSuccessDialog = ref(false);
 const generatedExam = ref(null);
+const generatedQr = ref(null);
 const referenceFile = ref(null);
 
 const form = reactive({
@@ -132,6 +162,34 @@ const form = reactive({
   questionTypes: ['single_choice', 'multi_choice', 'true_false', 'fill_blank'],
   requiredFields: ['name', 'student_id']
 });
+
+const getScanUrl = (codeKey) => {
+  if (!codeKey) return '';
+  return `${window.location.origin}/exam/${codeKey}`;
+};
+
+const copyScanUrl = (codeKey) => {
+  if (!codeKey) return;
+  navigator.clipboard.writeText(getScanUrl(codeKey));
+  ElMessage.success('答题链接已复制到剪贴板！');
+};
+
+const openH5Preview = (codeKey) => {
+  if (!codeKey) return;
+  window.open(getScanUrl(codeKey), '_blank');
+};
+
+const downloadQrCode = (elementId, title) => {
+  const container = document.getElementById(elementId);
+  const canvas = container?.querySelector('canvas');
+  if (!canvas) return ElMessage.warning('未能获取二维码画布');
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title || '考试'}_二维码.png`;
+  a.click();
+  ElMessage.success('二维码图片已下载！');
+};
 
 const handleFileChange = (file) => {
   referenceFile.value = file.raw;
@@ -167,7 +225,9 @@ const submitGenerate = async () => {
 
     if (res.data.success) {
       generatedExam.value = res.data.data;
+      generatedQr.value = res.data.qrCode;
       showSuccessDialog.value = true;
+      ElMessage.success('试卷生成成功，已自动生成专属答题二维码！');
     } else {
       ElMessage.error(res.data.message || '生成失败');
     }
@@ -183,9 +243,5 @@ const gotoEdit = () => {
   if (generatedExam.value) {
     router.push(`/admin/exam-editor/${generatedExam.value.id}`);
   }
-};
-
-const gotoQr = () => {
-  router.push('/admin/qr-manager');
 };
 </script>

@@ -172,30 +172,50 @@
     </el-card>
 
     <!-- 导入成功弹窗引导 -->
-    <el-dialog v-model="showSuccessDialog" title="🎉 题库导入成功！" width="520px" center>
-      <div class="text-center py-4 space-y-3">
-        <el-icon class="text-5xl text-green-500"><SuccessFilled /></el-icon>
+    <el-dialog v-model="showSuccessDialog" title="🎉 题库导入成功并已生成答题二维码！" width="540px" center>
+      <div class="text-center py-2 space-y-3">
         <h3 class="font-bold text-lg text-gray-800">{{ importedExam?.title }}</h3>
-        <p class="text-sm text-gray-600">
-          成功收录 <span class="font-bold text-blue-600">{{ importedExam?.questions?.length || importedCount }}</span> 道试题，满分 <span class="font-bold text-green-600">{{ importedExam?.totalScore }}</span> 分。
+        <p class="text-xs text-gray-500">
+          已成功收录 <span class="font-bold text-blue-600">{{ importedExam?.questions?.length || importedCount }}</span> 道试题，满分 <span class="font-bold text-green-600">{{ importedExam?.totalScore }}</span> 分
         </p>
-        <p class="text-xs text-gray-400">
-          您可以立即进入编辑器核对修改，或者一键绑定动态活码并分发扫码答题！
-        </p>
+
+        <!-- 专属二维码展示卡片 -->
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-sm mx-auto flex flex-col items-center shadow-inner space-y-3">
+          <div class="bg-white p-3 rounded-xl border shadow-sm" id="import-bank-qr-box">
+            <qrcode-vue :value="getScanUrl(importedQr?.codeKey)" :size="160" level="H" />
+          </div>
+          <div class="text-xs text-slate-500 font-medium">微信或手机扫码即刻答题</div>
+
+          <!-- 链接与复制 -->
+          <div class="w-full flex items-center gap-2">
+            <el-input :model-value="getScanUrl(importedQr?.codeKey)" readonly size="small" />
+            <el-button size="small" type="primary" plain @click="copyScanUrl(importedQr?.codeKey)">
+              复制链接
+            </el-button>
+          </div>
+
+          <!-- 模拟体验与下载 -->
+          <div class="flex items-center gap-2 w-full">
+            <el-button size="small" type="success" plain class="flex-1" @click="openH5Preview(importedQr?.codeKey)">
+              <el-icon class="mr-1"><View /></el-icon>
+              模拟手机答题
+            </el-button>
+            <el-button size="small" type="primary" plain class="flex-1" @click="downloadQrCode('import-bank-qr-box', importedExam?.title)">
+              <el-icon class="mr-1"><Download /></el-icon>
+              保存二维码图片
+            </el-button>
+          </div>
+        </div>
       </div>
 
       <template #footer>
-        <div class="flex flex-wrap justify-center gap-3">
+        <div class="flex justify-center gap-3 pt-2 border-t">
           <el-button type="primary" plain @click="gotoEdit">
             <el-icon class="mr-1"><Edit /></el-icon>
             进入在线核对/二次编辑
           </el-button>
-          <el-button type="success" @click="gotoQr">
-            <el-icon class="mr-1"><FullScreen /></el-icon>
-            生成/绑定活码二维码
-          </el-button>
           <el-button @click="gotoList">
-            返回试卷列表
+            查看我的试卷库
           </el-button>
         </div>
       </template>
@@ -207,6 +227,7 @@
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import QrcodeVue from 'qrcode.vue';
 import api from '../../utils/api';
 
 const router = useRouter();
@@ -221,6 +242,7 @@ const aiFile = ref(null);
 const showSuccessDialog = ref(false);
 const importedExam = ref(null);
 const importedCount = ref(0);
+const importedQr = ref(null);
 
 const excelForm = reactive({
   title: '',
@@ -234,6 +256,38 @@ const aiDocForm = reactive({
   durationMinutes: 0,
   requiredFields: ['name', 'student_id']
 });
+
+// 获取扫码链接
+const getScanUrl = (codeKey) => {
+  if (!codeKey) return '';
+  return `${window.location.origin}/exam/${codeKey}`;
+};
+
+// 复制链接
+const copyScanUrl = (codeKey) => {
+  if (!codeKey) return;
+  navigator.clipboard.writeText(getScanUrl(codeKey));
+  ElMessage.success('答题链接已复制到剪贴板！');
+};
+
+// 模拟打开答题
+const openH5Preview = (codeKey) => {
+  if (!codeKey) return;
+  window.open(getScanUrl(codeKey), '_blank');
+};
+
+// 下载二维码图片
+const downloadQrCode = (elementId, title) => {
+  const container = document.getElementById(elementId);
+  const canvas = container?.querySelector('canvas');
+  if (!canvas) return ElMessage.warning('未能获取二维码画布');
+  const url = canvas.toDataURL('image/png');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${title || '考试'}_二维码.png`;
+  a.click();
+  ElMessage.success('二维码图片已下载！');
+};
 
 // 下载标准 Excel 模板
 const downloadTemplate = () => {
@@ -281,8 +335,9 @@ const submitExcelImport = async () => {
     if (res.data.success) {
       importedExam.value = res.data.data;
       importedCount.value = res.data.count;
+      importedQr.value = res.data.qrCode;
       showSuccessDialog.value = true;
-      ElMessage.success(`导入成功，共识别并收录 ${res.data.count} 道题目！`);
+      ElMessage.success(`导入成功，已自动为您生成考试专属二维码！`);
     } else {
       ElMessage.error(res.data.message || '导入失败');
     }
@@ -327,8 +382,9 @@ const submitAiDocImport = async () => {
     if (res.data.success) {
       importedExam.value = res.data.data;
       importedCount.value = res.data.count;
+      importedQr.value = res.data.qrCode;
       showSuccessDialog.value = true;
-      ElMessage.success(`AI 识别成功，共收录 ${res.data.count} 道题目！`);
+      ElMessage.success(`AI 识别成功，已自动为您生成考试专属二维码！`);
     } else {
       ElMessage.error(res.data.message || 'AI 识别失败');
     }
@@ -345,10 +401,6 @@ const gotoEdit = () => {
   if (importedExam.value) {
     router.push(`/admin/exam-editor/${importedExam.value.id}`);
   }
-};
-
-const gotoQr = () => {
-  router.push('/admin/qr-manager');
 };
 
 const gotoList = () => {

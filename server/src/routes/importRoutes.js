@@ -2,6 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import xlsx from 'xlsx';
 import { PrismaClient } from '@prisma/client';
 import { parseFileContent } from '../services/aiService.js';
@@ -231,8 +232,20 @@ router.post('/excel', upload.single('file'), async (req, res) => {
       }
     });
 
+    // 自动为新导入的试卷创建专属动态活码
+    const codeKey = 'qr_' + crypto.randomBytes(6).toString('hex');
+    const qrCode = await prisma.qRCode.create({
+      data: {
+        userId,
+        codeKey,
+        title: newExam.title + ' 专属答题码',
+        examId: newExam.id,
+        isActive: true
+      }
+    });
+
     fs.unlinkSync(req.file.path);
-    res.json({ success: true, data: newExam, count: questions.length });
+    res.json({ success: true, data: newExam, qrCode, count: questions.length });
   } catch (error) {
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
@@ -435,8 +448,20 @@ ${documentText.slice(0, 15000)}
       });
     }
 
+    // 自动为新识别的试卷创建专属动态活码
+    const codeKey = 'qr_' + crypto.randomBytes(6).toString('hex');
+    const qrCode = await prisma.qRCode.create({
+      data: {
+        userId: currentUser ? currentUser.id : null,
+        codeKey,
+        title: newExam.title + ' 专属答题码',
+        examId: newExam.id,
+        isActive: true
+      }
+    });
+
     fs.unlinkSync(req.file.path);
-    res.json({ success: true, data: newExam, count: questions.length });
+    res.json({ success: true, data: newExam, qrCode, count: questions.length });
   } catch (error) {
     if (req.file && fs.existsSync(req.file.path)) {
       fs.unlinkSync(req.file.path);
