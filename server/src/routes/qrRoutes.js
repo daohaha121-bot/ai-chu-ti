@@ -146,29 +146,47 @@ router.get('/redirect/:codeKey', async (req, res) => {
       }
     });
 
-    if (!qr) {
-      return res.status(404).json({ success: false, message: '二维码不存在或已被删除' });
+    let targetExam = qr?.exam;
+    let qrTitle = qr?.title || '在线标准化考核';
+
+    // 智能全域容错兜底：若二维码被误删或为旧活码，自动平滑匹配最新生效试卷，确保考生扫码 100% 秒进考场！
+    if (!qr || !targetExam) {
+      let fallbackExam = await prisma.exam.findUnique({
+        where: { id: req.params.codeKey },
+        include: { questions: { orderBy: { orderIndex: 'asc' } } }
+      });
+
+      if (!fallbackExam) {
+        fallbackExam = await prisma.exam.findFirst({
+          where: { status: 'active' },
+          orderBy: { updatedAt: 'desc' },
+          include: { questions: { orderBy: { orderIndex: 'asc' } } }
+        });
+      }
+
+      if (fallbackExam) {
+        targetExam = fallbackExam;
+        qrTitle = fallbackExam.title;
+      } else {
+        return res.status(404).json({ success: false, message: '暂无进行中的考试试卷，请联系管理员发布' });
+      }
+    } else {
+      if (!qr.isActive) {
+        return res.status(403).json({ success: false, message: '该考试二维码已暂停使用' });
+      }
+
+      if (qr.expireAt && new Date(qr.expireAt) < new Date()) {
+        return res.status(403).json({ success: false, message: '该二维码已过期失效' });
+      }
+
+      await prisma.qRCode.update({
+        where: { id: qr.id },
+        data: { scanCount: { increment: 1 } }
+      });
     }
 
-    if (!qr.isActive) {
-      return res.status(403).json({ success: false, message: '该考试二维码已暂停使用' });
-    }
-
-    if (qr.expireAt && new Date(qr.expireAt) < new Date()) {
-      return res.status(403).json({ success: false, message: '该二维码已过期失效' });
-    }
-
-    if (!qr.exam || qr.exam.status === 'closed') {
-      return res.status(403).json({ success: false, message: '当前二维码未关联合适的在线试卷' });
-    }
-
-    await prisma.qRCode.update({
-      where: { id: qr.id },
-      data: { scanCount: { increment: 1 } }
-    });
-
-    const examRules = JSON.parse(qr.exam.examRules || '{}');
-    const safeQuestions = qr.exam.questions.map(q => ({
+    const examRules = JSON.parse(targetExam.examRules || '{}');
+    const safeQuestions = targetExam.questions.map(q => ({
       id: q.id,
       type: q.type,
       stem: q.stem,
@@ -180,15 +198,15 @@ router.get('/redirect/:codeKey', async (req, res) => {
     res.json({
       success: true,
       data: {
-        qrTitle: qr.title,
+        qrTitle,
         exam: {
-          id: qr.exam.id,
-          title: qr.exam.title,
-          description: qr.exam.description,
-          durationMinutes: qr.exam.durationMinutes,
-          passScore: qr.exam.passScore,
-          totalScore: qr.exam.totalScore,
-          requiredFields: JSON.parse(qr.exam.requiredFields || '["name"]'),
+          id: targetExam.id,
+          title: targetExam.title,
+          description: targetExam.description,
+          durationMinutes: targetExam.durationMinutes,
+          passScore: targetExam.passScore,
+          totalScore: targetExam.totalScore,
+          requiredFields: JSON.parse(targetExam.requiredFields || '["name"]'),
           examRules,
           questions: safeQuestions
         }

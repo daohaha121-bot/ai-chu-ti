@@ -150,6 +150,10 @@
           复制链接
         </el-button>
       </div>
+      <div class="bg-blue-50/80 border border-blue-100 rounded-lg p-2 text-[11px] text-blue-800 flex items-start gap-1.5">
+        <span>💡</span>
+        <span><b>微信扫码提示</b>：微信扫码时若弹出安全提示（「该地址为IP地址」），只需点击页面底部的<b>【继续访问】</b>即可瞬间直达试卷并呈现全部试题！</span>
+      </div>
 
       <!-- 底部核心操作 -->
       <div class="pt-2 border-t flex items-center justify-between gap-3 flex-wrap">
