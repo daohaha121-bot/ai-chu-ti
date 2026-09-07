@@ -22,18 +22,81 @@
         <el-button @click="$router.push('/admin/exams')">← 返回试卷库</el-button>
         <h3 class="text-lg font-bold text-gray-900">试卷二次编辑器 & 考试防作弊规则配置</h3>
       </div>
-      <div class="flex items-center gap-2.5">
+      <div class="flex items-center gap-2.5 flex-wrap">
+        <el-button type="success" plain size="large" @click="downloadPureQrDirect">
+          <el-icon class="mr-1"><Download /></el-icon>
+          下载纯二维码
+        </el-button>
+        <el-button type="warning" plain size="large" @click="openPosterModal">
+          <el-icon class="mr-1"><Picture /></el-icon>
+          海报二维码
+        </el-button>
         <el-button type="info" plain size="large" @click="showAnswersModal = true">
           <el-icon class="mr-1"><CopyDocument /></el-icon>
           复制正确答案
         </el-button>
-        <el-button type="warning" plain size="large" @click="openPosterModal">
-          <el-icon class="mr-1"><Picture /></el-icon>
-          二维码 / 海报下载
-        </el-button>
         <el-button type="primary" size="large" @click="saveExam">
           <el-icon class="mr-1"><Check /></el-icon>
           保存修改并更新试卷
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 试卷专属答题二维码与即时分发卡片 (直接在页面显示，可扫码、可一键下载) -->
+    <div class="bg-gradient-to-r from-blue-50 via-indigo-50 to-white p-5 rounded-2xl border border-blue-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+      <div class="flex items-center gap-5">
+        <!-- 核心二维码直接渲染 -->
+        <div id="inline-editor-qr-box" class="p-3 bg-white rounded-2xl shadow-sm border border-blue-100 shrink-0 flex flex-col items-center">
+          <qrcode-vue
+            v-if="currentQrCodeKey"
+            :value="getScanUrl(currentQrCodeKey)"
+            :size="130"
+            level="H"
+            class="rounded-lg"
+          />
+          <div v-else class="w-[130px] h-[130px] flex items-center justify-center text-xs text-gray-400">
+            正在加载二维码...
+          </div>
+          <span class="text-[10px] text-gray-400 mt-1 font-mono">手机扫码即刻答题</span>
+        </div>
+
+        <!-- 活码信息与操作引导 -->
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-100 text-green-700">
+              ● 考试动态活码已就绪 (随时可测)
+            </span>
+            <span class="text-xs text-gray-400 font-mono">活码ID: {{ currentQrCodeKey || '-' }}</span>
+          </div>
+          <h4 class="text-base font-black text-gray-900 leading-tight">
+            {{ exam.title || '当前考试' }}
+          </h4>
+          <p class="text-xs text-gray-500 max-w-lg">
+            本活码永久有效。试卷题目在此修改保存后，考生扫码将实时看到最新试题，无需重新打印更换二维码！
+          </p>
+          <div class="flex items-center gap-2 pt-1 flex-wrap">
+            <el-input :model-value="getScanUrl(currentQrCodeKey)" readonly size="small" class="w-64" />
+            <el-button size="small" type="primary" plain @click="copyScanUrl(currentQrCodeKey)">
+              <el-icon class="mr-1"><CopyDocument /></el-icon>
+              复制答题链接
+            </el-button>
+            <el-button size="small" type="info" plain @click="openH5Preview(currentQrCodeKey)">
+              <el-icon class="mr-1"><View /></el-icon>
+              模拟答题
+            </el-button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 核心一键下载按钮专区 -->
+      <div class="flex flex-col gap-2.5 shrink-0 w-full md:w-auto">
+        <el-button type="success" size="large" class="font-bold shadow" @click="downloadPureQrDirect">
+          <el-icon class="mr-1"><Download /></el-icon>
+          📥 一键下载纯二维码 (PNG)
+        </el-button>
+        <el-button type="warning" size="large" class="font-bold shadow" @click="openPosterModal">
+          <el-icon class="mr-1"><Picture /></el-icon>
+          🖼️ 生成 & 下载宣传海报
         </el-button>
       </div>
     </div>
@@ -178,10 +241,12 @@
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
+import QrcodeVue from 'qrcode.vue';
 import ExamPosterModal from '../../components/ExamPosterModal.vue';
 import CopyAnswersModal from '../../components/CopyAnswersModal.vue';
 import api from '../../utils/api';
 import axios from 'axios';
+import { downloadQrCodeFromContainer } from '../../utils/downloadHelper';
 
 const route = useRoute();
 const router = useRouter();
@@ -190,6 +255,39 @@ const loading = ref(false);
 const showPosterModal = ref(false);
 const showAnswersModal = ref(false);
 const currentQrCode = ref(null);
+
+const currentQrCodeKey = computed(() => {
+  return currentQrCode.value?.codeKey || (exam.qrCodes && exam.qrCodes[0]?.codeKey) || '';
+});
+
+const getScanUrl = (codeKey) => {
+  if (!codeKey) return '';
+  return `${window.location.origin}/exam/${codeKey}`;
+};
+
+const copyScanUrl = (codeKey) => {
+  if (!codeKey) return;
+  navigator.clipboard.writeText(getScanUrl(codeKey));
+  ElMessage.success('考试答题链接已复制到剪贴板！');
+};
+
+const openH5Preview = (codeKey) => {
+  if (!codeKey) return;
+  window.open(getScanUrl(codeKey), '_blank');
+};
+
+const downloadPureQrDirect = () => {
+  const success = downloadQrCodeFromContainer(
+    'inline-editor-qr-box',
+    `${exam.title || '考试'}_二维码.png`,
+    exam.title
+  );
+  if (success) {
+    ElMessage.success('考试二维码图片已一键保存至本地！');
+  } else {
+    ElMessage.warning('未能获取二维码画布，请稍候重试');
+  }
+};
 
 const fullExamForModal = computed(() => ({
   ...exam,
@@ -250,6 +348,18 @@ const fetchExamDetails = async () => {
         ...q,
         options: q.options ? JSON.parse(q.options) : []
       }));
+
+      // 加载活码
+      if (data.qrCodes && data.qrCodes.length > 0) {
+        currentQrCode.value = data.qrCodes[0];
+      } else {
+        try {
+          const qrRes = await api.get(`/qr/by-exam/${data.id}`);
+          if (qrRes.data.success && qrRes.data.data) {
+            currentQrCode.value = qrRes.data.data;
+          }
+        } catch (e) {}
+      }
     }
   } catch (err) {
     ElMessage.error('获取试卷数据失败');
