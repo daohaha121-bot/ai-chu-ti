@@ -51,8 +51,8 @@
           :class="themeCardClass"
         >
           <!-- 背景装饰光晕 -->
-          <div class="absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none opacity-40" :class="themeGlowClass"></div>
-          <div class="absolute -bottom-12 -left-12 w-36 h-36 rounded-full blur-2xl pointer-events-none opacity-30" :class="themeGlowClass"></div>
+          <div data-html2canvas-ignore="true" class="absolute -top-12 -right-12 w-36 h-36 rounded-full blur-2xl pointer-events-none opacity-40" :class="themeGlowClass"></div>
+          <div data-html2canvas-ignore="true" class="absolute -bottom-12 -left-12 w-36 h-36 rounded-full blur-2xl pointer-events-none opacity-30" :class="themeGlowClass"></div>
 
           <!-- 海报 Header: 考试名称与答题须知 -->
           <div class="p-6 pb-3 space-y-3 relative z-10">
@@ -90,7 +90,7 @@
           <!-- 海报 Core: 二维码与周边精美装饰图 -->
           <div class="px-6 py-4 flex flex-col items-center relative z-10">
             <!-- 二维码包裹器 (带精美边框角标) -->
-            <div class="p-4 rounded-2xl shadow-lg relative transition" :class="themeQrBoxClass">
+            <div id="exam-poster-qr-wrapper" class="p-4 rounded-2xl shadow-lg relative transition" :class="themeQrBoxClass">
               <!-- 四个精致拐角修饰 -->
               <div class="absolute top-1.5 left-1.5 w-3 h-3 border-t-2 border-l-2" :class="themeCornerClass"></div>
               <div class="absolute top-1.5 right-1.5 w-3 h-3 border-t-2 border-r-2" :class="themeCornerClass"></div>
@@ -110,10 +110,11 @@
               </div>
             </div>
 
-            <!-- 扫码说明徽章 -->
-            <div class="mt-3 flex items-center gap-1.5 text-xs font-bold" :class="themeScanTextClass">
-              <span class="text-sm">📱</span>
-              <span>微信 / 手机浏览器扫码即答</span>
+            <!-- 快捷下载与扫码说明 -->
+            <div class="mt-3 flex items-center justify-center gap-2">
+              <span class="text-xs font-bold" :class="themeScanTextClass">
+                📱 微信/手机扫码即答
+              </span>
             </div>
           </div>
 
@@ -151,17 +152,21 @@
       </div>
 
       <!-- 底部核心操作 -->
-      <div class="pt-2 border-t flex items-center justify-between gap-3">
-        <el-button type="success" plain @click="openH5Preview(qrCodeKey)">
+      <div class="pt-2 border-t flex items-center justify-between gap-3 flex-wrap">
+        <el-button type="info" plain @click="openH5Preview(qrCodeKey)">
           <el-icon class="mr-1"><View /></el-icon>
-          模拟手机答题
+          模拟答题
         </el-button>
 
         <div class="flex items-center gap-2">
           <el-button @click="visible = false">关闭</el-button>
-          <el-button type="primary" :loading="downloading" class="font-bold shadow" @click="downloadPoster">
+          <el-button type="success" class="font-bold shadow" @click="downloadPureQr">
             <el-icon class="mr-1"><Download /></el-icon>
-            保存 2x 高清海报图片 (PNG)
+            一键下载纯二维码 (PNG)
+          </el-button>
+          <el-button type="primary" :loading="downloading" class="font-bold shadow" @click="downloadPoster">
+            <el-icon class="mr-1"><Picture /></el-icon>
+            一键下载宣传海报 (PNG)
           </el-button>
         </div>
       </div>
@@ -170,10 +175,12 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import QrcodeVue from 'qrcode.vue';
 import html2canvas from 'html2canvas';
+import api from '../utils/api';
+import { downloadCanvas, downloadQrCodeFromContainer } from '../utils/downloadHelper';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -190,9 +197,26 @@ const visible = computed({
 
 const theme = ref('blue'); // 'blue', 'redGold', 'white'
 const downloading = ref(false);
+const internalQrCode = ref(null);
+
+// 自动补齐兜底：若父组件未注入二维码，则弹窗根据试卷 ID 自动请求
+watch(
+  () => [props.modelValue, props.exam?.id],
+  async ([val, examId]) => {
+    if (val && examId && !props.qrCode?.codeKey && !props.exam?.qrCodes?.length) {
+      try {
+        const res = await api.get(`/qr/by-exam/${examId}`);
+        if (res.data?.success && res.data?.data) {
+          internalQrCode.value = res.data.data;
+        }
+      } catch (err) {}
+    }
+  },
+  { immediate: true }
+);
 
 const qrCodeKey = computed(() => {
-  return props.qrCode?.codeKey || (props.exam?.qrCodes && props.exam.qrCodes[0]?.codeKey) || '';
+  return props.qrCode?.codeKey || internalQrCode.value?.codeKey || (props.exam?.qrCodes && props.exam.qrCodes[0]?.codeKey) || '';
 });
 
 const getScanUrl = (codeKey) => {
@@ -209,6 +233,46 @@ const copyScanUrl = (codeKey) => {
 const openH5Preview = (codeKey) => {
   if (!codeKey) return;
   window.open(getScanUrl(codeKey), '_blank');
+};
+
+// 1. 一键下载纯二维码图片 (PNG)
+const downloadPureQr = () => {
+  const success = downloadQrCodeFromContainer(
+    'exam-poster-qr-wrapper',
+    `${props.exam?.title || '考试'}_二维码.png`,
+    props.exam?.title
+  );
+  if (success) {
+    ElMessage.success('考试二维码已一键保存至本地！');
+  } else {
+    ElMessage.warning('二维码尚未加载完成，请稍候重试');
+  }
+};
+
+// 2. 一键导出 2x 高清宣传海报图片 (PNG)
+const downloadPoster = async () => {
+  const element = document.getElementById('exam-poster-capture-area');
+  if (!element) return;
+
+  downloading.value = true;
+  try {
+    ElMessage.info('正在渲染 2x 高清宣传海报图片...');
+    const bgColor = theme.value === 'blue' ? '#0f172a' : (theme.value === 'redGold' ? '#450a0a' : '#ffffff');
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      logging: false,
+      backgroundColor: bgColor
+    });
+    downloadCanvas(canvas, `${props.exam?.title || '考试'}_宣传海报二维码.png`);
+    ElMessage.success('高清海报图片已成功保存！');
+  } catch (err) {
+    console.error('海报导出失败:', err);
+    ElMessage.error('海报导出失败: ' + err.message);
+  } finally {
+    downloading.value = false;
+  }
 };
 
 // 样式类计算
@@ -279,30 +343,4 @@ const themeFeaturesClass = computed(() => {
   if (theme.value === 'redGold') return 'text-amber-300/90';
   return 'text-gray-600';
 });
-
-// 导出 2x 高清海报
-const downloadPoster = async () => {
-  const element = document.getElementById('exam-poster-capture-area');
-  if (!element) return;
-
-  downloading.value = true;
-  try {
-    ElMessage.info('正在渲染 2x 高清宣传海报图片...');
-    const canvas = await html2canvas(element, {
-      scale: 2.5,
-      useCORS: true,
-      backgroundColor: null
-    });
-    const link = document.createElement('a');
-    link.download = `${props.exam?.title || '考试'}_宣传海报二维码.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    ElMessage.success('高清海报图片已保存至本地！');
-  } catch (err) {
-    console.error('海报导出失败:', err);
-    ElMessage.error('海报导出失败: ' + err.message);
-  } finally {
-    downloading.value = false;
-  }
-};
 </script>

@@ -327,6 +327,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import QrcodeVue from 'qrcode.vue';
 import api from '../../utils/api';
+import { downloadQrCodeFromContainer } from '../../utils/downloadHelper';
 
 const router = useRouter();
 
@@ -384,15 +385,12 @@ const openH5Preview = (codeKey) => {
 
 // 下载二维码图片
 const downloadQrCode = (elementId, title) => {
-  const container = document.getElementById(elementId);
-  const canvas = container?.querySelector('canvas');
-  if (!canvas) return ElMessage.warning('未能获取二维码画布');
-  const url = canvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${title || '考试'}_二维码.png`;
-  a.click();
-  ElMessage.success('二维码图片已下载！');
+  const success = downloadQrCodeFromContainer(elementId, `${title || '考试'}_二维码.png`, title);
+  if (success) {
+    ElMessage.success('二维码图片已成功下载！');
+  } else {
+    ElMessage.warning('未能获取二维码画布，请稍候重试');
+  }
 };
 
 // 下载标准 Excel 模板

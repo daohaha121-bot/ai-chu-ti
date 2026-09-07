@@ -132,6 +132,7 @@
 import { ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import html2canvas from 'html2canvas';
+import { downloadCanvas } from '../utils/downloadHelper';
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -167,16 +168,15 @@ const downloadCertificate = async () => {
   try {
     ElMessage.info('正在生成官方成绩证明图片...');
     const canvas = await html2canvas(element, {
-      scale: 2.5,
+      scale: 2,
       useCORS: true,
-      backgroundColor: null
+      allowTaint: true,
+      logging: false,
+      backgroundColor: '#ffffff'
     });
     const candidateName = props.submission?.userInfo?.name || '考生';
     const examTitle = props.exam?.title || '考试';
-    const link = document.createElement('a');
-    link.download = `${candidateName}_${examTitle}_成绩证明单.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    downloadCanvas(canvas, `${candidateName}_${examTitle}_成绩证明单.png`);
     ElMessage.success('成绩证明图片已成功保存！');
   } catch (err) {
     console.error('成绩单导出失败:', err);

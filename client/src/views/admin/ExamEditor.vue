@@ -12,7 +12,7 @@
       <div class="flex items-center gap-2">
         <el-button type="warning" class="font-bold shadow" @click="openPosterModal">
           <el-icon class="mr-1"><Picture /></el-icon>
-          生成考试海报二维码
+          一键获取考试二维码与海报
         </el-button>
       </div>
     </div>
@@ -29,7 +29,7 @@
         </el-button>
         <el-button type="warning" plain size="large" @click="openPosterModal">
           <el-icon class="mr-1"><Picture /></el-icon>
-          考试海报二维码
+          二维码 / 海报下载
         </el-button>
         <el-button type="primary" size="large" @click="saveExam">
           <el-icon class="mr-1"><Check /></el-icon>

@@ -53,12 +53,12 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="380" align="right">
+        <el-table-column label="操作" width="400" align="right">
           <template #default="{ row }">
             <div class="flex justify-end gap-1.5">
               <el-button size="small" type="warning" plain @click="openExamPoster(row)">
                 <el-icon class="mr-0.5"><Picture /></el-icon>
-                海报码
+                二维码 / 海报
               </el-button>
               <el-button size="small" type="info" plain @click="openExamAnswers(row)">
                 <el-icon class="mr-0.5"><CopyDocument /></el-icon>
@@ -111,7 +111,7 @@ const selectedQrCode = ref(null);
 
 const openExamPoster = async (row) => {
   selectedExam.value = row;
-  selectedQrCode.value = null;
+  selectedQrCode.value = row.qrCodes?.[0] || null;
   showPosterModal.value = true;
   try {
     const res = await api.get(`/qr/by-exam/${row.id}`);

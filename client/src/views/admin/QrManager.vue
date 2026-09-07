@@ -61,7 +61,18 @@
               复制 H5 答题链接
             </el-button>
 
-            <el-button size="small" type="success" plain class="w-full" @click="openH5Preview(qr.codeKey)">
+            <div class="grid grid-cols-2 gap-1.5">
+              <el-button size="small" type="success" plain class="w-full" @click="downloadQrCode('qr-canvas-' + qr.id, qr.title)">
+                <el-icon class="mr-1"><Download /></el-icon>
+                下载二维码
+              </el-button>
+              <el-button size="small" type="warning" plain class="w-full" @click="openPosterModal(qr)">
+                <el-icon class="mr-1"><Picture /></el-icon>
+                宣传海报
+              </el-button>
+            </div>
+
+            <el-button size="small" type="info" plain class="w-full" @click="openH5Preview(qr.codeKey)">
               <el-icon class="mr-1"><View /></el-icon>
               模拟 H5 答题
             </el-button>
@@ -69,6 +80,13 @@
         </div>
       </div>
     </div>
+
+    <!-- 专属海报二维码弹窗 -->
+    <ExamPosterModal
+      v-model="showPosterModal"
+      :exam="selectedExam"
+      :qr-code="selectedQr"
+    />
 
     <!-- 新建活码对话框 -->
     <el-dialog v-model="showCreateDialog" title="新建动态活码" width="450px">
@@ -102,11 +120,32 @@ import { ref, reactive, onMounted } from 'vue';
 import QrcodeVue from 'qrcode.vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import api from '../../utils/api';
+import ExamPosterModal from '../../components/ExamPosterModal.vue';
+import { downloadQrCodeFromContainer } from '../../utils/downloadHelper';
 
 const qrList = ref([]);
 const examOptions = ref([]);
 const loading = ref(false);
 const showCreateDialog = ref(false);
+
+const showPosterModal = ref(false);
+const selectedExam = ref(null);
+const selectedQr = ref(null);
+
+const openPosterModal = (qr) => {
+  selectedQr.value = qr;
+  selectedExam.value = examOptions.value.find(e => e.id === qr.examId) || { title: qr.title };
+  showPosterModal.value = true;
+};
+
+const downloadQrCode = (containerId, title) => {
+  const success = downloadQrCodeFromContainer(containerId, `${title || '活码'}_二维码.png`, title);
+  if (success) {
+    ElMessage.success('二维码已一键保存至本地！');
+  } else {
+    ElMessage.warning('未能获取二维码，请稍候重试');
+  }
+};
 
 const newQrForm = reactive({
   title: '',
