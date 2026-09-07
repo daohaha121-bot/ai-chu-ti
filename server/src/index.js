@@ -9,6 +9,7 @@ import submissionRoutes from './routes/submissionRoutes.js';
 import configRoutes from './routes/configRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import importRoutes from './routes/importRoutes.js';
 
 dotenv.config({ path: path.resolve(process.cwd(), '../.env') });
 dotenv.config();
@@ -25,6 +26,7 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/import', importRoutes);
 app.use('/api/qr', qrRoutes);
 app.use('/api/submissions', submissionRoutes);
 app.use('/api/config', configRoutes);

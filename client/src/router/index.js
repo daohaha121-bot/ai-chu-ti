@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 import AdminLayout from '../views/admin/AdminLayout.vue';
 import AiGenerate from '../views/admin/AiGenerate.vue';
+import ImportBank from '../views/admin/ImportBank.vue';
 import ExamList from '../views/admin/ExamList.vue';
 import ExamEditor from '../views/admin/ExamEditor.vue';
 import QrManager from '../views/admin/QrManager.vue';
@@ -22,6 +23,7 @@ const routes = [
     component: AdminLayout,
     children: [
       { path: 'ai-generate', name: 'AiGenerate', component: AiGenerate, meta: { title: 'AI 智能出题' } },
+      { path: 'import-bank', name: 'ImportBank', component: ImportBank, meta: { title: '直接上传题库' } },
       { path: 'exams', name: 'ExamList', component: ExamList, meta: { title: '试卷库管理' } },
       { path: 'exam-editor/:id', name: 'ExamEditor', component: ExamEditor, meta: { title: '试卷二次编辑' } },
       { path: 'qr-manager', name: 'QrManager', component: QrManager, meta: { title: '动态活码管理' } },

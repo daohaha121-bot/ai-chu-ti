@@ -2,10 +2,16 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <h3 class="text-base font-bold text-gray-800">全部试卷库 ({{ exams.length }})</h3>
-      <el-button type="primary" @click="$router.push('/admin/ai-generate')">
-        <el-icon class="mr-1"><MagicStick /></el-icon>
-        AI 智能出题
-      </el-button>
+      <div class="flex items-center gap-3">
+        <el-button type="success" plain @click="$router.push('/admin/import-bank')">
+          <el-icon class="mr-1"><UploadFilled /></el-icon>
+          直接上传题库
+        </el-button>
+        <el-button type="primary" @click="$router.push('/admin/ai-generate')">
+          <el-icon class="mr-1"><MagicStick /></el-icon>
+          AI 智能出题
+        </el-button>
+      </div>
     </div>
 
     <el-card class="shadow-sm border-0 rounded-xl">

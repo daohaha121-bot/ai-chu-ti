@@ -45,6 +45,15 @@
         </router-link>
 
         <router-link
+          to="/admin/import-bank"
+          class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors"
+          :class="$route.name === 'ImportBank' ? 'bg-blue-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800'"
+        >
+          <el-icon><UploadFilled /></el-icon>
+          直接上传题库
+        </router-link>
+
+        <router-link
           to="/admin/exams"
           class="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors"
           :class="['ExamList', 'ExamEditor'].includes($route.name) ? 'bg-blue-600 text-white shadow' : 'text-slate-300 hover:bg-slate-800'"
