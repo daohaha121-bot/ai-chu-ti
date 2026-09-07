@@ -64,6 +64,55 @@
                 </el-checkbox-group>
               </el-form-item>
 
+              <!-- 考试防作弊与规则设置 -->
+              <div class="bg-blue-50/60 border border-blue-200 rounded-xl p-4 space-y-3">
+                <div class="font-bold text-xs text-blue-900 flex items-center gap-1.5">
+                  <el-icon class="text-blue-600"><Lock /></el-icon>
+                  🛡️ 考试规则与防作弊管控参数
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">防切屏作弊监控</div>
+                      <div class="text-[11px] text-gray-400">检测考生切屏，达到上限强制交卷</div>
+                    </div>
+                    <el-switch v-model="excelForm.preventCheating" />
+                  </div>
+
+                  <div v-if="excelForm.preventCheating" class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">切屏容忍上限</div>
+                      <div class="text-[11px] text-gray-400">超限自动强制交卷</div>
+                    </div>
+                    <el-input-number v-model="excelForm.maxSwitchCount" :min="1" :max="10" size="small" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">单人允许答题次数</div>
+                      <div class="text-[11px] text-gray-400">限制每位考生身份的可作答次数</div>
+                    </div>
+                    <el-select v-model="excelForm.maxSubmissions" size="small" class="w-36">
+                      <el-option label="限答 1 次 (严格模式)" :value="1" />
+                      <el-option label="限答 2 次 (允许补考)" :value="2" />
+                      <el-option label="限答 3 次" :value="3" />
+                      <el-option label="不限次数 (自由练习)" :value="0" />
+                    </el-select>
+                  </div>
+
+                  <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">交卷即时显示答案与解析</div>
+                      <div class="text-[11px] text-gray-400">开启后考生交卷可查看详细对错与考点</div>
+                    </div>
+                    <el-switch v-model="excelForm.showAnswers" />
+                  </div>
+                </div>
+              </div>
+
               <!-- 上传控件 -->
               <el-form-item label="上传填写好的 Excel 题库文件 (.xlsx / .xls)" required>
                 <el-upload
@@ -133,6 +182,55 @@
                   <el-checkbox label="phone">手机号码</el-checkbox>
                 </el-checkbox-group>
               </el-form-item>
+
+              <!-- 考试防作弊与规则设置 -->
+              <div class="bg-indigo-50/60 border border-indigo-200 rounded-xl p-4 space-y-3">
+                <div class="font-bold text-xs text-indigo-900 flex items-center gap-1.5">
+                  <el-icon class="text-indigo-600"><Lock /></el-icon>
+                  🛡️ 考试规则与防作弊管控参数
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">防切屏作弊监控</div>
+                      <div class="text-[11px] text-gray-400">检测考生切屏，达到上限强制交卷</div>
+                    </div>
+                    <el-switch v-model="aiDocForm.preventCheating" />
+                  </div>
+
+                  <div v-if="aiDocForm.preventCheating" class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">切屏容忍上限</div>
+                      <div class="text-[11px] text-gray-400">超限自动强制交卷</div>
+                    </div>
+                    <el-input-number v-model="aiDocForm.maxSwitchCount" :min="1" :max="10" size="small" />
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                  <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">单人允许答题次数</div>
+                      <div class="text-[11px] text-gray-400">限制每位考生身份的可作答次数</div>
+                    </div>
+                    <el-select v-model="aiDocForm.maxSubmissions" size="small" class="w-36">
+                      <el-option label="限答 1 次 (严格模式)" :value="1" />
+                      <el-option label="限答 2 次 (允许补考)" :value="2" />
+                      <el-option label="限答 3 次" :value="3" />
+                      <el-option label="不限次数 (自由练习)" :value="0" />
+                    </el-select>
+                  </div>
+
+                  <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border">
+                    <div>
+                      <div class="text-xs font-bold text-gray-800">交卷即时显示答案与解析</div>
+                      <div class="text-[11px] text-gray-400">开启后考生交卷可查看详细对错与考点</div>
+                    </div>
+                    <el-switch v-model="aiDocForm.showAnswers" />
+                  </div>
+                </div>
+              </div>
 
               <!-- 上传控件 -->
               <el-form-item label="上传既有题库文档 (支持 Word .docx, .doc, PDF, TXT, MD)" required>
@@ -248,13 +346,21 @@ const excelForm = reactive({
   title: '',
   description: '',
   durationMinutes: 0,
-  requiredFields: ['name', 'student_id']
+  requiredFields: ['name', 'student_id'],
+  preventCheating: true,
+  maxSwitchCount: 3,
+  maxSubmissions: 1,
+  showAnswers: true
 });
 
 const aiDocForm = reactive({
   title: '',
   durationMinutes: 0,
-  requiredFields: ['name', 'student_id']
+  requiredFields: ['name', 'student_id'],
+  preventCheating: true,
+  maxSwitchCount: 3,
+  maxSubmissions: 1,
+  showAnswers: true
 });
 
 // 获取扫码链接
@@ -327,17 +433,21 @@ const submitExcelImport = async () => {
     if (excelForm.description) formData.append('description', excelForm.description);
     formData.append('durationMinutes', excelForm.durationMinutes);
     formData.append('requiredFields', JSON.stringify(excelForm.requiredFields));
+    formData.append('examRules', JSON.stringify({
+      preventCheating: excelForm.preventCheating,
+      maxSwitchCount: excelForm.maxSwitchCount,
+      maxSubmissions: excelForm.maxSubmissions,
+      showAnswers: excelForm.showAnswers,
+      idleTimeoutSeconds: 60
+    }));
 
     const res = await api.post('/import/excel', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
     if (res.data.success) {
-      importedExam.value = res.data.data;
-      importedCount.value = res.data.count;
-      importedQr.value = res.data.qrCode;
-      showSuccessDialog.value = true;
-      ElMessage.success(`导入成功，已自动为您生成考试专属二维码！`);
+      ElMessage.success(`🎉 导入成功，共收录 ${res.data.count} 道题目！已为您进入在线核对与编辑页面`);
+      router.push(`/admin/exam-editor/${res.data.data.id}?source=import`);
     } else {
       ElMessage.error(res.data.message || '导入失败');
     }
@@ -374,17 +484,21 @@ const submitAiDocImport = async () => {
     if (aiDocForm.title) formData.append('title', aiDocForm.title);
     formData.append('durationMinutes', aiDocForm.durationMinutes);
     formData.append('requiredFields', JSON.stringify(aiDocForm.requiredFields));
+    formData.append('examRules', JSON.stringify({
+      preventCheating: aiDocForm.preventCheating,
+      maxSwitchCount: aiDocForm.maxSwitchCount,
+      maxSubmissions: aiDocForm.maxSubmissions,
+      showAnswers: aiDocForm.showAnswers,
+      idleTimeoutSeconds: 60
+    }));
 
     const res = await api.post('/import/ai-parse', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
 
     if (res.data.success) {
-      importedExam.value = res.data.data;
-      importedCount.value = res.data.count;
-      importedQr.value = res.data.qrCode;
-      showSuccessDialog.value = true;
-      ElMessage.success(`AI 识别成功，已自动为您生成考试专属二维码！`);
+      ElMessage.success(`🎉 AI 识别成功，共收录 ${res.data.count} 道题目！已为您进入在线核对与编辑页面`);
+      router.push(`/admin/exam-editor/${res.data.data.id}?source=import`);
     } else {
       ElMessage.error(res.data.message || 'AI 识别失败');
     }

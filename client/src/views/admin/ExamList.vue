@@ -53,12 +53,16 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="340" align="right">
+        <el-table-column label="操作" width="380" align="right">
           <template #default="{ row }">
             <div class="flex justify-end gap-1.5">
-              <el-button size="small" type="warning" plain @click="openExamQr(row)">
-                <el-icon class="mr-0.5"><FullScreen /></el-icon>
-                二维码
+              <el-button size="small" type="warning" plain @click="openExamPoster(row)">
+                <el-icon class="mr-0.5"><Picture /></el-icon>
+                海报码
+              </el-button>
+              <el-button size="small" type="info" plain @click="openExamAnswers(row)">
+                <el-icon class="mr-0.5"><CopyDocument /></el-icon>
+                复制答案
               </el-button>
               <el-button size="small" type="primary" plain @click="$router.push(`/admin/exam-editor/${row.id}`)">
                 编辑
@@ -75,97 +79,57 @@
       </el-table>
     </el-card>
 
-    <!-- 试卷二维码弹窗 -->
-    <el-dialog v-model="showQrDialog" :title="'📱 ' + (currentQrExam?.title || '') + ' - 专属答题二维码'" width="480px" center>
-      <div class="text-center py-2 space-y-4" v-loading="qrLoading">
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-5 max-w-sm mx-auto flex flex-col items-center shadow-inner space-y-3">
-          <div class="bg-white p-3 rounded-xl border shadow-sm" id="exam-list-qr-box">
-            <qrcode-vue v-if="currentQrCode" :value="getScanUrl(currentQrCode.codeKey)" :size="160" level="H" />
-          </div>
-          <div class="text-xs text-slate-500 font-medium">微信或手机扫码即答</div>
+    <!-- 专属海报二维码弹窗 -->
+    <ExamPosterModal
+      v-model="showPosterModal"
+      :exam="selectedExam"
+      :qr-code="selectedQrCode"
+    />
 
-          <div class="w-full flex items-center gap-2">
-            <el-input :model-value="getScanUrl(currentQrCode?.codeKey)" readonly size="small" />
-            <el-button size="small" type="primary" plain @click="copyScanUrl(currentQrCode?.codeKey)">
-              复制链接
-            </el-button>
-          </div>
-
-          <div class="flex items-center gap-2 w-full">
-            <el-button size="small" type="success" plain class="flex-1" @click="openH5Preview(currentQrCode?.codeKey)">
-              <el-icon class="mr-1"><View /></el-icon>
-              模拟答题
-            </el-button>
-            <el-button size="small" type="primary" plain class="flex-1" @click="downloadQrCode('exam-list-qr-box', currentQrExam?.title)">
-              <el-icon class="mr-1"><Download /></el-icon>
-              下载图片
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+    <!-- 一键复制正确答案弹窗 -->
+    <CopyAnswersModal
+      v-model="showAnswersModal"
+      :exam="selectedExam"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
-import QrcodeVue from 'qrcode.vue';
+import ExamPosterModal from '../../components/ExamPosterModal.vue';
+import CopyAnswersModal from '../../components/CopyAnswersModal.vue';
 import api from '../../utils/api';
 
 const exams = ref([]);
 const loading = ref(false);
 
-const showQrDialog = ref(false);
-const currentQrExam = ref(null);
-const currentQrCode = ref(null);
-const qrLoading = ref(false);
+const showPosterModal = ref(false);
+const showAnswersModal = ref(false);
+const selectedExam = ref(null);
+const selectedQrCode = ref(null);
 
-const getScanUrl = (codeKey) => {
-  if (!codeKey) return '';
-  return `${window.location.origin}/exam/${codeKey}`;
-};
-
-const copyScanUrl = (codeKey) => {
-  if (!codeKey) return;
-  navigator.clipboard.writeText(getScanUrl(codeKey));
-  ElMessage.success('答题链接已复制到剪贴板！');
-};
-
-const openH5Preview = (codeKey) => {
-  if (!codeKey) return;
-  window.open(getScanUrl(codeKey), '_blank');
-};
-
-const downloadQrCode = (elementId, title) => {
-  const container = document.getElementById(elementId);
-  const canvas = container?.querySelector('canvas');
-  if (!canvas) return ElMessage.warning('未能获取二维码画布');
-  const url = canvas.toDataURL('image/png');
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${title || '考试'}_二维码.png`;
-  a.click();
-  ElMessage.success('二维码图片已下载！');
-};
-
-const openExamQr = async (row) => {
-  currentQrExam.value = row;
-  showQrDialog.value = true;
-  qrLoading.value = true;
-  currentQrCode.value = null;
-
+const openExamPoster = async (row) => {
+  selectedExam.value = row;
+  selectedQrCode.value = null;
+  showPosterModal.value = true;
   try {
     const res = await api.get(`/qr/by-exam/${row.id}`);
     if (res.data.success && res.data.data) {
-      currentQrCode.value = res.data.data;
-    } else {
-      ElMessage.error(res.data.message || '获取二维码失败');
+      selectedQrCode.value = res.data.data;
+    }
+  } catch (err) {}
+};
+
+const openExamAnswers = async (row) => {
+  try {
+    const res = await api.get(`/exams/${row.id}`);
+    if (res.data.success && res.data.data) {
+      selectedExam.value = res.data.data;
+      showAnswersModal.value = true;
     }
   } catch (err) {
-    ElMessage.error('获取试卷二维码失败');
-  } finally {
-    qrLoading.value = false;
+    ElMessage.error('获取试卷题目失败');
   }
 };
 

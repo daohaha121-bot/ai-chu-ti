@@ -72,6 +72,55 @@
           </el-upload>
         </el-form-item>
 
+        <!-- 考试防作弊与规则设置 -->
+        <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+          <div class="font-bold text-sm text-gray-800 flex items-center gap-1.5">
+            <el-icon class="text-blue-600"><Lock /></el-icon>
+            🛡️ 考试规则与防作弊管控参数
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="flex items-center justify-between bg-white p-3 rounded-lg border">
+              <div>
+                <div class="text-xs font-bold text-gray-800">防切屏作弊监控</div>
+                <div class="text-[11px] text-gray-400">检测考生离开考场/切屏，达到上限强制交卷</div>
+              </div>
+              <el-switch v-model="form.preventCheating" />
+            </div>
+
+            <div v-if="form.preventCheating" class="flex items-center justify-between bg-white p-3 rounded-lg border">
+              <div>
+                <div class="text-xs font-bold text-gray-800">切屏容忍次数上限</div>
+                <div class="text-[11px] text-gray-400">达到该次数即刻自动强制交卷</div>
+              </div>
+              <el-input-number v-model="form.maxSwitchCount" :min="1" :max="10" size="small" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+            <div class="flex items-center justify-between bg-white p-3 rounded-lg border">
+              <div>
+                <div class="text-xs font-bold text-gray-800">单人允许答题次数</div>
+                <div class="text-[11px] text-gray-400">限制每位考生身份的可作答次数</div>
+              </div>
+              <el-select v-model="form.maxSubmissions" size="small" class="w-36">
+                <el-option label="限答 1 次 (严格模式)" :value="1" />
+                <el-option label="限答 2 次 (允许补考)" :value="2" />
+                <el-option label="限答 3 次" :value="3" />
+                <el-option label="不限次数 (自由练习)" :value="0" />
+              </el-select>
+            </div>
+
+            <div class="flex items-center justify-between bg-white p-3 rounded-lg border">
+              <div>
+                <div class="text-xs font-bold text-gray-800">交卷即时显示答案与解析</div>
+                <div class="text-[11px] text-gray-400">开启后考生交卷可查看详细对错与考点</div>
+              </div>
+              <el-switch v-model="form.showAnswers" />
+            </div>
+          </div>
+        </div>
+
         <div class="pt-4 border-t flex justify-end gap-3">
           <el-button
             type="primary"
@@ -81,7 +130,7 @@
             class="px-8 font-bold"
           >
             <el-icon class="mr-1"><MagicStick /></el-icon>
-            立即召唤 AI 智能生成试卷
+            立即召唤 AI 出题并进入核对编辑
           </el-button>
         </div>
       </el-form>
@@ -160,7 +209,11 @@ const form = reactive({
   totalScore: 100,
   difficulty: 'medium',
   questionTypes: ['single_choice', 'multi_choice', 'true_false', 'fill_blank'],
-  requiredFields: ['name', 'student_id']
+  requiredFields: ['name', 'student_id'],
+  preventCheating: true,
+  maxSwitchCount: 3,
+  maxSubmissions: 1,
+  showAnswers: true
 });
 
 const getScanUrl = (codeKey) => {
@@ -214,6 +267,13 @@ const submitGenerate = async () => {
     formData.append('difficulty', form.difficulty);
     formData.append('questionTypes', JSON.stringify(form.questionTypes));
     formData.append('requiredFields', JSON.stringify(form.requiredFields));
+    formData.append('examRules', JSON.stringify({
+      preventCheating: form.preventCheating,
+      maxSwitchCount: form.maxSwitchCount,
+      maxSubmissions: form.maxSubmissions,
+      showAnswers: form.showAnswers,
+      idleTimeoutSeconds: 60
+    }));
 
     if (referenceFile.value) {
       formData.append('referenceFile', referenceFile.value);
@@ -224,10 +284,8 @@ const submitGenerate = async () => {
     });
 
     if (res.data.success) {
-      generatedExam.value = res.data.data;
-      generatedQr.value = res.data.qrCode;
-      showSuccessDialog.value = true;
-      ElMessage.success('试卷生成成功，已自动生成专属答题二维码！');
+      ElMessage.success('🎉 AI 出题完成！已为您自动进入题目核对与编辑页面，请确认无误后生成海报二维码');
+      router.push(`/admin/exam-editor/${res.data.data.id}?source=ai`);
     } else {
       ElMessage.error(res.data.message || '生成失败');
     }

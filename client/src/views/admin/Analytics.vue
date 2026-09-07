@@ -123,23 +123,60 @@
               <span class="text-xs text-gray-500">{{ new Date(row.submittedAt).toLocaleString() }}</span>
             </template>
           </el-table-column>
+
+          <el-table-column label="操作" width="220" align="center" fixed="right">
+            <template #default="{ row }">
+              <div class="flex items-center justify-center gap-2">
+                <el-button
+                  size="small"
+                  type="primary"
+                  plain
+                  @click="openCertModal(row)"
+                >
+                  📜 成绩证明单
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  plain
+                  @click="deleteSubmission(row)"
+                >
+                  🗑️ 删除
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
         </el-table>
       </div>
     </div>
+
+    <!-- 考生官方成绩证明单卡片导出弹窗 -->
+    <CandidateCertModal
+      v-model="showCertModal"
+      :submission="selectedSubmission"
+      :exam="examInfo"
+      :system-config="systemConfig"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import axios from 'axios';
 import html2canvas from 'html2canvas';
+import CandidateCertModal from '@/components/CandidateCertModal.vue';
 
 const route = useRoute();
 const loading = ref(false);
 const analytics = ref({ questionAnalytics: [] });
 const submissions = ref([]);
+const examInfo = ref({});
+
+// 成绩证明单弹窗控制
+const showCertModal = ref(false);
+const selectedSubmission = ref(null);
 
 const systemConfig = reactive({
   platformName: 'AI 智能考试平台',
@@ -150,19 +187,54 @@ const systemConfig = reactive({
 const fetchData = async () => {
   loading.value = true;
   try {
-    const [anaRes, subRes, cfgRes] = await Promise.all([
+    const [anaRes, subRes, cfgRes, examRes] = await Promise.all([
       axios.get(`/api/submissions/analytics/${route.params.examId}`),
       axios.get(`/api/submissions/exam/${route.params.examId}`),
-      axios.get('/api/config')
+      axios.get('/api/config'),
+      axios.get(`/api/exams/${route.params.examId}`)
     ]);
 
     if (anaRes.data.success) analytics.value = anaRes.data.data;
     if (subRes.data.success) submissions.value = subRes.data.data;
     if (cfgRes.data.success) Object.assign(systemConfig, cfgRes.data.data);
+    if (examRes.data.success) examInfo.value = examRes.data.data;
   } catch (err) {
     ElMessage.error('获取统计报表数据失败');
   } finally {
     loading.value = false;
+  }
+};
+
+const openCertModal = (submission) => {
+  selectedSubmission.value = submission;
+  showCertModal.value = true;
+};
+
+const deleteSubmission = async (submission) => {
+  const candidateName = submission.userInfo?.name || '该考生';
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除考生【${candidateName}】的本次成绩记录吗？\n删除后该考生在答题限制规则下的提交次数将被清空/减少，可重新扫码答题，此操作不可逆！`,
+      '警告 · 删除考生成绩记录',
+      {
+        confirmButtonText: '确认删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    );
+
+    const res = await axios.delete(`/api/submissions/${submission.id}`);
+    if (res.data.success) {
+      ElMessage.success('成绩记录已删除，该考生答题资格已恢复');
+      fetchData();
+    } else {
+      ElMessage.error(res.data.message || '删除失败');
+    }
+  } catch (err) {
+    if (err !== 'cancel') {
+      ElMessage.error('删除操作失败: ' + (err.response?.data?.message || err.message));
+    }
   }
 };
 

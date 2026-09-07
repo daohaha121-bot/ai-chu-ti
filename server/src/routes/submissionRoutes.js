@@ -257,4 +257,16 @@ router.get('/export/excel/:examId', async (req, res) => {
   }
 });
 
+// 删除某位考生的单条答题记录（用于补考或清理误测数据）
+router.delete('/:id', async (req, res) => {
+  try {
+    await prisma.submission.delete({
+      where: { id: req.params.id }
+    });
+    res.json({ success: true, message: '成绩记录已删除' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;
