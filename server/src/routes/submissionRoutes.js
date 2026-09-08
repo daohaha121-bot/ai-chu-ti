@@ -6,33 +6,49 @@ const router = express.Router();
 const prisma = new PrismaClient();
 
 // 自动判卷核心算法
-function evaluateAnswers(questions, userAnswers) {
+function evaluateAnswers(questions, userAnswers = {}) {
   let userScore = 0;
   let totalScore = 0;
   const questionResults = [];
 
   questions.forEach(q => {
     totalScore += q.score;
-    const userAnswer = userAnswers[q.id];
+    const rawAnswer = userAnswers ? userAnswers[q.id] : undefined;
     let isCorrect = false;
 
-    if (q.type === 'single_choice' || q.type === 'true_false') {
-      const cleanUser = String(userAnswer || '').trim().toLowerCase();
-      const cleanTarget = String(q.answer || '').trim().toLowerCase();
-      isCorrect = cleanUser === cleanTarget || cleanTarget.startsWith(cleanUser);
-    } else if (q.type === 'multi_choice') {
-      let uList = Array.isArray(userAnswer) ? userAnswer : String(userAnswer || '').split(',').map(s => s.trim());
-      let tList = String(q.answer || '').split(',').map(s => s.trim());
-      uList = uList.sort().join(',').toLowerCase();
-      tList = tList.sort().join(',').toLowerCase();
-      isCorrect = uList === tList && uList.length > 0;
-    } else if (q.type === 'fill_blank') {
-      const cleanUser = String(userAnswer || '').trim().toLowerCase();
-      const cleanTarget = String(q.answer || '').trim().toLowerCase();
-      isCorrect = cleanUser.length > 0 && (cleanUser === cleanTarget || cleanTarget.includes(cleanUser));
-    } else if (q.type === 'short_answer') {
-      // 简答题有内容即给基本分或满分
-      isCorrect = String(userAnswer || '').trim().length > 5;
+    // 严密判定考生是否真正作答（非 undefined/null，且去除首尾空格后有实际内容）
+    const hasAnswered = rawAnswer !== undefined && rawAnswer !== null && (
+      Array.isArray(rawAnswer) 
+        ? rawAnswer.filter(item => String(item || '').trim().length > 0).length > 0 
+        : String(rawAnswer).trim().length > 0
+    );
+
+    let displayUserAnswer = hasAnswered ? rawAnswer : null;
+
+    if (hasAnswered) {
+      if (q.type === 'single_choice' || q.type === 'true_false') {
+        const cleanUser = String(rawAnswer).trim().toLowerCase();
+        const cleanTarget = String(q.answer || '').trim().toLowerCase();
+        // 必须非空且完全匹配，或标准答案以该选项开头（如 "A" 匹配 "A. 选项内容"）
+        isCorrect = cleanUser === cleanTarget || (cleanUser.length > 0 && cleanTarget.startsWith(cleanUser));
+      } else if (q.type === 'multi_choice') {
+        let uList = Array.isArray(rawAnswer) ? rawAnswer : String(rawAnswer).split(',').map(s => s.trim());
+        uList = uList.filter(s => s.length > 0);
+        let tList = String(q.answer || '').split(',').map(s => s.trim()).filter(s => s.length > 0);
+        uList = uList.sort().join(',').toLowerCase();
+        tList = tList.sort().join(',').toLowerCase();
+        isCorrect = uList.length > 0 && uList === tList;
+      } else if (q.type === 'fill_blank') {
+        const cleanUser = String(rawAnswer).trim().toLowerCase();
+        const cleanTarget = String(q.answer || '').trim().toLowerCase();
+        isCorrect = cleanUser.length > 0 && (cleanUser === cleanTarget || cleanTarget.includes(cleanUser));
+      } else if (q.type === 'short_answer') {
+        // 简答题需大于 5 个字且有实质内容
+        isCorrect = String(rawAnswer).trim().length > 5;
+      }
+    } else {
+      // 未作答一律判定为回答错误，不得分
+      isCorrect = false;
     }
 
     const earned = isCorrect ? q.score : 0;
@@ -42,7 +58,8 @@ function evaluateAnswers(questions, userAnswers) {
       questionId: q.id,
       stem: q.stem,
       type: q.type,
-      userAnswer,
+      userAnswer: displayUserAnswer,
+      hasAnswered,
       standardAnswer: q.answer,
       isCorrect,
       score: earned,

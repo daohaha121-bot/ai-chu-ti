@@ -29,16 +29,29 @@
       <div v-for="(q, idx) in result.details" :key="q.questionId" class="bg-white p-4 rounded-xl shadow-sm border border-gray-200 space-y-2">
         <div class="flex items-center justify-between text-xs border-b pb-2">
           <span class="font-bold text-gray-700">第 {{ idx + 1 }} 题 ({{ q.score }} / {{ q.totalScore }} 分)</span>
-          <el-tag :type="q.isCorrect ? 'success' : 'danger'" size="small">
-            {{ q.isCorrect ? '回答正确' : '回答错误' }}
-          </el-tag>
+          <div class="flex items-center gap-1.5">
+            <el-tag v-if="!q.userAnswer || (q.hasAnswered === false)" type="danger" effect="plain" size="small">
+              未作答 (0分)
+            </el-tag>
+            <el-tag :type="q.isCorrect ? 'success' : 'danger'" size="small">
+              {{ q.isCorrect ? '回答正确' : '回答错误' }}
+            </el-tag>
+          </div>
         </div>
 
         <div class="text-sm font-bold text-gray-900">{{ q.stem }}</div>
 
         <div class="bg-gray-50 p-2.5 rounded-lg text-xs space-y-1">
-          <div><span class="text-gray-500">您的答案:</span> <span class="font-bold" :class="q.isCorrect ? 'text-green-600' : 'text-red-500'">{{ formatAns(q.userAnswer) }}</span></div>
-          <div><span class="text-gray-500">标准答案:</span> <span class="font-bold text-blue-600">{{ formatAns(q.standardAnswer) }}</span></div>
+          <div>
+            <span class="text-gray-500">您的答案:</span> 
+            <span v-if="!q.userAnswer || (q.hasAnswered === false)" class="font-black text-rose-600 ml-1">
+              [ 未作答 ]
+            </span>
+            <span v-else class="font-bold ml-1" :class="q.isCorrect ? 'text-green-600' : 'text-red-500'">
+              {{ formatAns(q.userAnswer) }}
+            </span>
+          </div>
+          <div><span class="text-gray-500">标准答案:</span> <span class="font-bold text-blue-600 ml-1">{{ formatAns(q.standardAnswer) }}</span></div>
         </div>
 
         <div v-if="q.analysis" class="text-xs text-gray-500 pt-1 border-t border-dashed">

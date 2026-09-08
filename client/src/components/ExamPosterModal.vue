@@ -182,7 +182,7 @@
 import { ref, computed, watch } from 'vue';
 import { ElMessage } from 'element-plus';
 import QrcodeVue from 'qrcode.vue';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import api from '../utils/api';
 import { downloadCanvas, downloadQrCodeFromContainer, getExamScanUrl } from '../utils/downloadHelper';
 
@@ -258,21 +258,45 @@ const downloadPoster = async () => {
   if (!element) return;
 
   downloading.value = true;
+  const examTitle = (props.exam?.title || '考试').replace(/[\\/:*?"<>|]/g, '_');
+  const filename = `${examTitle}_宣传海报二维码.png`;
+
   try {
-    ElMessage.info('正在渲染 2x 高清宣传海报图片...');
-    const bgColor = theme.value === 'blue' ? '#0f172a' : (theme.value === 'redGold' ? '#450a0a' : '#ffffff');
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      allowTaint: true,
-      logging: false,
-      backgroundColor: bgColor
+    ElMessage.info('正在生成 2x 高清宣传海报图片...');
+
+    // 使用 html-to-image 渲染，基于 SVG foreignObject 原生支持所有现代 CSS 色彩 (包括 oklch) 与渐变
+    const dataUrl = await toPng(element, {
+      pixelRatio: 2,
+      cacheBust: true,
+      filter: () => true
     });
-    downloadCanvas(canvas, `${props.exam?.title || '考试'}_宣传海报二维码.png`);
-    ElMessage.success('高清海报图片已成功保存！');
+
+    if (!dataUrl || dataUrl.length < 100) {
+      throw new Error('生成的海报图片数据为空');
+    }
+
+    try {
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = dataUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        if (link.parentNode) document.body.removeChild(link);
+      }, 1000);
+      ElMessage.success('高清海报图片已成功保存！');
+    } catch (downErr) {
+      const w = window.open('');
+      if (w) {
+        w.document.write(`<html><head><title>${filename}</title></head><body style="margin:0;display:flex;justify-content:center;background:#0f172a;"><img src="${dataUrl}" style="max-height:100vh;padding:20px;box-sizing:border-box;" /></body></html>`);
+        w.document.close();
+        ElMessage.info('海报已在新窗口打开，请右键保存图片');
+      }
+    }
   } catch (err) {
     console.error('海报导出失败:', err);
-    ElMessage.error('海报导出失败: ' + err.message);
+    ElMessage.error('海报导出失败: ' + (err.message || '未知错误'));
   } finally {
     downloading.value = false;
   }
