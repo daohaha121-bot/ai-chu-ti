@@ -85,22 +85,52 @@ JSON 必须严格按照以下结构：
 
   const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.7
-      }
-    })
-  });
+  
+  let response;
+  let retries = 3;
+  let delay = 2000;
+  let errorText = '';
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Gemini API 请求失败 (${response.status}): ${errorText}`);
+  while(retries > 0) {
+    try {
+      response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.7
+          }
+        })
+      });
+
+      if (response.ok) {
+        break; // 成功则跳出循环
+      }
+      
+      errorText = await response.text();
+      // 如果不是 503、429 等可重试错误，就直接抛出
+      if (response.status !== 503 && response.status !== 429 && response.status >= 400) {
+        throw new Error(`Gemini API 请求失败 (${response.status}): ${errorText}`);
+      }
+      
+      console.warn(`[AI Service] API 拥挤 (${response.status})，等待 ${delay}ms 后重试... 剩余次数: ${retries-1}`);
+    } catch (e) {
+      if (retries === 1) throw e;
+    }
+    
+    retries--;
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 2; // 指数退避
+    }
   }
+
+  if (!response || !response.ok) {
+     throw new Error(`Gemini API 持续请求失败 (${response?.status}): ${errorText}`);
+  }
+
 
   const data = await response.json();
   const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
