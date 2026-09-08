@@ -298,41 +298,49 @@ const formatDate = (dateStr) => {
   return d.toLocaleString('zh-CN', { hour12: false });
 };
 
-// 导出 2x 超清成绩总表图片（动态调整可见 DOM 滚动区域进行完整截取）
+// 导出 2x 超清成绩总表图片（采用深度克隆 DOM 节点并置于 body 顶层绝对定位的方式，彻底规避 el-dialog 的 transform 与 overflow 导致的 html2canvas 截断与黑屏坐标偏移问题）
 const downloadRosterImage = async () => {
-  const element = document.getElementById('official-exam-roster-capture-area');
-  if (!element) {
+  const sourceElement = document.getElementById('official-exam-roster-capture-area');
+  if (!sourceElement) {
     ElMessage.error('找不到要导出的成绩单区域');
     return;
   }
 
   downloading.value = true;
-  let originalMaxHeight = '';
-  let originalOverflow = '';
+  
+  // 创建克隆容器并放置到 body 最外层
+  const cloneWrapper = document.createElement('div');
+  cloneWrapper.style.position = 'absolute';
+  cloneWrapper.style.top = '0';
+  cloneWrapper.style.left = '0';
+  cloneWrapper.style.width = '900px';
+  // 使用 -9999 层级使其在背景后面，不影响用户当前视窗体验
+  cloneWrapper.style.zIndex = '-9999';
+  cloneWrapper.style.backgroundColor = '#ffffff';
+  cloneWrapper.style.pointerEvents = 'none';
+
+  // 深度克隆原始 DOM
+  const cloneNode = sourceElement.cloneNode(true);
+  // 移除可能影响定位的 margin 等
+  cloneNode.style.margin = '0';
+  cloneNode.style.transform = 'none';
+  
+  cloneWrapper.appendChild(cloneNode);
+  document.body.appendChild(cloneWrapper);
 
   try {
     ElMessage.info('正在渲染 2x 超清官方考核成绩单...');
 
-    // 记录原始样式，临时取消滚动限制，以便 html2canvas 完整截取全部高度
-    if (previewScrollArea.value) {
-      originalMaxHeight = previewScrollArea.value.style.maxHeight;
-      originalOverflow = previewScrollArea.value.style.overflow;
-      previewScrollArea.value.style.maxHeight = 'none';
-      previewScrollArea.value.style.overflow = 'visible';
-    }
-
-    // 等待 DOM 更新和重排
-    await nextTick();
+    // 等待浏览器渲染克隆节点
     await new Promise(resolve => setTimeout(resolve, 300));
 
-    const canvas = await html2canvas(element, {
+    // 对最外层纯净的 cloneWrapper 进行截图
+    const canvas = await html2canvas(cloneWrapper, {
       scale: 2,
       useCORS: true,
-      allowTaint: true,
       logging: false,
-      backgroundColor: '#ffffff',
-      scrollX: 0,
-      scrollY: 0
+      backgroundColor: '#ffffff'
+      // 不设置 scrollX / scrollY，让其自动根据正常文档流计算，由于处于 top:0 left:0，绝对不会发生偏移截断
     });
 
     const examTitle = (props.exam?.title || '考试').replace(/[\\/:*?"<>|]/g, '_');
@@ -344,10 +352,9 @@ const downloadRosterImage = async () => {
     console.error('成绩总表导出失败:', err);
     ElMessage.error('长图生成失败: ' + (err.message || '未知错误'));
   } finally {
-    // 恢复原始滚动区域样式
-    if (previewScrollArea.value) {
-      previewScrollArea.value.style.maxHeight = originalMaxHeight;
-      previewScrollArea.value.style.overflow = originalOverflow;
+    // 清理克隆的垃圾节点
+    if (document.body.contains(cloneWrapper)) {
+      document.body.removeChild(cloneWrapper);
     }
     downloading.value = false;
   }
