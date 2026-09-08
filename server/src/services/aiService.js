@@ -83,17 +83,21 @@ JSON 必须严格按照以下结构：
   ]
 }`;
 
-  const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  // 备用模型故障转移列表：主模型繁忙时无缝切换到备用模型
+  const candidateModels = [
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-flash-latest'
+  ];
 
-  
-  let response;
-  let retries = 3;
-  let delay = 2000;
-  let errorText = '';
+  let lastError = null;
 
-  while(retries > 0) {
+  for (const model of candidateModels) {
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    console.log(`[AI Service] 正在尝试调用模型: ${model}...`);
+
     try {
-      response = await fetch(apiUrl, {
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -105,40 +109,30 @@ JSON 必须严格按照以下结构：
         })
       });
 
-      if (response.ok) {
-        break; // 成功则跳出循环
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.warn(`[AI Service] 模型 ${model} 请求失败 (${response.status}):`, errorText.slice(0, 200));
+        lastError = new Error(`Gemini (${model}) 失败: ${errorText.slice(0, 200)}`);
+        continue;
       }
-      
-      errorText = await response.text();
-      // 如果不是 503、429 等可重试错误，就直接抛出
-      if (response.status !== 503 && response.status !== 429 && response.status >= 400) {
-        throw new Error(`Gemini API 请求失败 (${response.status}): ${errorText}`);
+
+      const data = await response.json();
+      const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!textResult) {
+        lastError = new Error(`模型 ${model} 未返回有效内容`);
+        continue;
       }
-      
-      console.warn(`[AI Service] API 拥挤 (${response.status})，等待 ${delay}ms 后重试... 剩余次数: ${retries-1}`);
-    } catch (e) {
-      if (retries === 1) throw e;
+
+      const cleanJsonText = textResult.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
+      const examData = JSON.parse(cleanJsonText);
+      console.log(`[AI Service] 模型 ${model} 成功生成 ${examData.questions?.length || 0} 道题！`);
+      return examData;
+
+    } catch (err) {
+      console.error(`[AI Service] 调用 ${model} 异常:`, err.message);
+      lastError = err;
     }
-    
-    retries--;
-    if (retries > 0) {
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2; // 指数退避
-    }
   }
 
-  if (!response || !response.ok) {
-     throw new Error(`Gemini API 持续请求失败 (${response?.status}): ${errorText}`);
-  }
-
-
-  const data = await response.json();
-  const textResult = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textResult) {
-    throw new Error('Gemini API 未返回有效内容。');
-  }
-
-  const cleanJsonText = textResult.replace(/^```json\s*/i, '').replace(/```$/i, '').trim();
-  const examData = JSON.parse(cleanJsonText);
-  return examData;
+  throw lastError || new Error('所有 Gemini 模型均尝试失败，请稍后重试');
 }
