@@ -42,6 +42,7 @@
       >
         <!-- 页面预览卡片 -->
         <div
+          id="official-exam-roster-capture-area"
           class="w-[900px] min-w-[900px] bg-white p-8 rounded-xl shadow-md border border-gray-200 text-slate-800 space-y-6"
         >
           <!-- 顶部抬头：平台机构名称与认证徽章 -->
@@ -230,181 +231,6 @@
       </div>
     </div>
 
-    <!-- 专用于 html2canvas 导出的独立屏幕外 DOM (彻底杜绝弹窗滚动、可视区尺寸、滚动偏移对生成图片造成的截断) -->
-    <div
-      id="official-exam-roster-export-hidden"
-      style="position: fixed; left: -99999px; top: 0; width: 920px; background-color: #ffffff; z-index: -9999; pointer-events: none;"
-    >
-      <div class="w-[920px] bg-white p-8 text-slate-800 space-y-6" style="background-color: #ffffff;">
-        <!-- 顶部抬头：平台机构名称与认证徽章 -->
-        <div class="border-b-2 border-slate-900 pb-5 text-center relative space-y-2">
-          <div class="flex items-center justify-center gap-2">
-            <span class="text-2xl">🏛️</span>
-            <span class="text-xs font-black tracking-widest text-slate-600 uppercase">
-              {{ systemConfig?.platformName || 'AI 智能在线考核认证中心' }}
-            </span>
-          </div>
-
-          <h1 class="text-2xl font-black tracking-tight text-slate-900 pt-1">
-            {{ exam?.title || '标准化考核' }} · 考生考核成绩总表
-          </h1>
-
-          <div class="flex items-center justify-between text-[11px] text-slate-500 pt-2 px-1 border-t border-dashed border-slate-200 mt-2">
-            <span class="font-mono font-medium">存证编号: ARCHIVE-{{ (exam?.id || 'EXAM').slice(0, 8).toUpperCase() }}-{{ archiveDateCode }}</span>
-            <span>制表日期: {{ currentDateFormatted }}</span>
-            <span class="font-medium text-slate-600">{{ systemConfig?.watermarkText || '真实考试存证有效' }}</span>
-          </div>
-        </div>
-
-        <!-- 核心统计概况卡片 -->
-        <div class="grid grid-cols-5 gap-3 text-center">
-          <div class="bg-slate-50 border border-slate-200/80 p-3 rounded-lg">
-            <div class="text-[11px] text-slate-500 font-medium mb-0.5">满分 / 及格线</div>
-            <div class="text-base font-black text-slate-800">
-              {{ exam?.totalScore || 100 }}分 / {{ exam?.passScore || 60 }}分
-            </div>
-          </div>
-
-          <div class="bg-blue-50/70 border border-blue-200/80 p-3 rounded-lg">
-            <div class="text-[11px] text-blue-600 font-medium mb-0.5">参考总人数</div>
-            <div class="text-base font-black text-blue-950">
-              {{ submissions.length }} <span class="text-xs font-normal">人</span>
-            </div>
-          </div>
-
-          <div class="bg-emerald-50/70 border border-emerald-200/80 p-3 rounded-lg">
-            <div class="text-[11px] text-emerald-600 font-medium mb-0.5">考核达标人数</div>
-            <div class="text-base font-black text-emerald-950">
-              {{ passedCount }} <span class="text-xs font-normal">人</span>
-            </div>
-          </div>
-
-          <div class="bg-purple-50/70 border border-purple-200/80 p-3 rounded-lg">
-            <div class="text-[11px] text-purple-600 font-medium mb-0.5">综合及格率</div>
-            <div class="text-base font-black text-purple-950">
-              {{ calculatedPassRate }}%
-            </div>
-          </div>
-
-          <div class="bg-amber-50/70 border border-amber-200/80 p-3 rounded-lg">
-            <div class="text-[11px] text-amber-700 font-medium mb-0.5">全员平均分</div>
-            <div class="text-base font-black text-amber-950">
-              {{ calculatedAvgScore }} <span class="text-xs font-normal">分</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 考生全量花名册与成绩明细表格 -->
-        <div class="border border-slate-300 rounded-lg overflow-hidden">
-          <table class="w-full text-left border-collapse" style="table-layout: fixed;">
-            <thead>
-              <tr class="bg-slate-900 text-white text-xs">
-                <th class="py-2.5 px-2.5 font-semibold text-center" style="width: 6%;">序号</th>
-                <th class="py-2.5 px-3 font-semibold" style="width: 14%;">考生姓名</th>
-                <th class="py-2.5 px-3 font-semibold" style="width: 15%;">学号/工号</th>
-                <th class="py-2.5 px-3 font-semibold" style="width: 15%;">部门/班级</th>
-                <th class="py-2.5 px-2 font-semibold text-center" style="width: 10%;">考核得分</th>
-                <th class="py-2.5 px-2 font-semibold text-center" style="width: 10%;">评定结果</th>
-                <th class="py-2.5 px-2 font-semibold text-center" style="width: 12%;">考场纪律</th>
-                <th class="py-2.5 px-3 font-semibold text-right" style="width: 18%;">交卷时间</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-200 text-xs text-slate-700">
-              <tr
-                v-for="(sub, idx) in submissions"
-                :key="'export-' + (sub.id || idx)"
-                :class="idx % 2 === 1 ? 'bg-slate-50/60' : 'bg-white'"
-              >
-                <td class="py-2.5 px-2.5 text-center font-mono text-slate-400">{{ idx + 1 }}</td>
-                <td class="py-2.5 px-3 font-bold text-slate-900 truncate">{{ sub.userInfo?.name || '匿名' }}</td>
-                <td class="py-2.5 px-3 font-mono text-slate-600 truncate">{{ sub.userInfo?.student_id || '-' }}</td>
-                <td class="py-2.5 px-3 text-slate-600 truncate">{{ sub.userInfo?.department || '-' }}</td>
-                <td class="py-2.5 px-2 text-center font-bold text-sm font-mono" :class="sub.isPassed ? 'text-emerald-600' : 'text-rose-600'">
-                  {{ sub.score }}分
-                </td>
-                <td class="py-2.5 px-2 text-center">
-                  <span
-                    v-if="sub.isPassed"
-                    class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300"
-                  >
-                    合格
-                  </span>
-                  <span
-                    v-else
-                    class="inline-block px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300"
-                  >
-                    未达标
-                  </span>
-                </td>
-                <td class="py-2.5 px-2 text-center">
-                  <span v-if="sub.switchCount > 0" class="inline-block text-[10px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded border border-amber-300">
-                    切屏 {{ sub.switchCount }} 次
-                  </span>
-                  <span v-else class="text-slate-400 text-[10px]">正常 (0次)</span>
-                </td>
-                <td class="py-2.5 px-3 text-right font-mono text-[11px] text-slate-500 whitespace-nowrap">
-                  {{ formatDate(sub.submittedAt) }}
-                </td>
-              </tr>
-
-              <tr v-if="submissions.length === 0">
-                <td colspan="8" class="py-10 text-center text-slate-400 text-sm">
-                  暂无考生成绩记录
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- 真实考试背书与法律/纪律说明 -->
-        <div class="bg-amber-50/40 border border-amber-200/60 rounded-lg p-3 text-[11px] text-slate-600 leading-relaxed space-y-1">
-          <div class="font-bold text-amber-950 flex items-center gap-1.5">
-            <span>⚖️</span>
-            <span>真实考试与成绩存证背书：</span>
-          </div>
-          <p>
-            本考核成绩汇总表由数字化考核系统严格依据标准化考场答题记录与反作弊切屏监控系统自动生成。全员答卷内容、得分评定及考试纪律数据均已入库归档存证，成绩真实无篡改，特此出具成绩公报。
-          </p>
-        </div>
-
-        <!-- 底部签署栏与权威官方防伪红章 -->
-        <div class="pt-4 border-t border-slate-200 flex items-end justify-between relative min-h-[120px]">
-          <!-- 左侧合规落款 -->
-          <div class="space-y-1.5 text-xs text-slate-600">
-            <div><strong>考核主办机构：</strong>{{ systemConfig?.platformName || '考核认证委员会' }}</div>
-            <div><strong>防伪认证机制：</strong>数字签名防伪存证与考场全程切屏监控</div>
-            <div class="text-[11px] text-slate-400 font-mono">
-              HASH: SHA256-{{ (exam?.id || 'EXAM').slice(0, 12) }}-VERIFIED
-            </div>
-          </div>
-
-          <!-- 中间主考审核人签字栏 -->
-          <div class="text-xs text-slate-700 space-y-2 pb-1">
-            <div>主考官 / 审核人签字：__________________</div>
-            <div class="text-[11px] text-slate-500">签发日期：{{ currentDateFormatted }}</div>
-          </div>
-
-          <!-- 右侧官方红色双圈权威印章 (纯矢量 CSS 绘制) -->
-          <div class="relative w-36 h-36 flex items-center justify-center pr-2">
-            <div
-              class="w-32 h-32 rounded-full border-4 border-red-600 flex flex-col items-center justify-center text-red-600 pointer-events-none select-none -rotate-12 shadow-sm"
-              style="border-style: double; border-width: 4px; background-color: rgba(254, 242, 242, 0.45);"
-            >
-              <div class="text-[10px] font-bold tracking-tight text-center px-1 truncate max-w-[105px]">
-                {{ (systemConfig?.platformName || '在线考试认证中心').slice(0, 10) }}
-              </div>
-              <div class="text-base my-0.5 leading-none">★</div>
-              <div class="text-sm font-black tracking-widest">
-                考核成绩专用章
-              </div>
-              <div class="text-[9px] tracking-tight font-semibold mt-0.5">
-                官方认证 · 真实有效
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </el-dialog>
 </template>
 
@@ -472,18 +298,32 @@ const formatDate = (dateStr) => {
   return d.toLocaleString('zh-CN', { hour12: false });
 };
 
-// 导出 2x 超清成绩总表图片（采用独立的屏幕外 DOM 渲染，杜绝滚动错位与截断）
+// 导出 2x 超清成绩总表图片（动态调整可见 DOM 滚动区域进行完整截取）
 const downloadRosterImage = async () => {
-  // 优先捕获完全展开、无滚动条、宽度固定的屏幕外独立导出节点
-  const element = document.getElementById('official-exam-roster-export-hidden') || document.getElementById('official-exam-roster-capture-area');
+  const element = document.getElementById('official-exam-roster-capture-area');
   if (!element) {
     ElMessage.error('找不到要导出的成绩单区域');
     return;
   }
 
   downloading.value = true;
+  let originalMaxHeight = '';
+  let originalOverflow = '';
+
   try {
     ElMessage.info('正在渲染 2x 超清官方考核成绩单...');
+
+    // 记录原始样式，临时取消滚动限制，以便 html2canvas 完整截取全部高度
+    if (previewScrollArea.value) {
+      originalMaxHeight = previewScrollArea.value.style.maxHeight;
+      originalOverflow = previewScrollArea.value.style.overflow;
+      previewScrollArea.value.style.maxHeight = 'none';
+      previewScrollArea.value.style.overflow = 'visible';
+    }
+
+    // 等待 DOM 更新和重排
+    await nextTick();
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     const canvas = await html2canvas(element, {
       scale: 2,
@@ -492,9 +332,7 @@ const downloadRosterImage = async () => {
       logging: false,
       backgroundColor: '#ffffff',
       scrollX: 0,
-      scrollY: 0,
-      windowWidth: 920,
-      width: 920
+      scrollY: 0
     });
 
     const examTitle = (props.exam?.title || '考试').replace(/[\\/:*?"<>|]/g, '_');
@@ -506,6 +344,11 @@ const downloadRosterImage = async () => {
     console.error('成绩总表导出失败:', err);
     ElMessage.error('长图生成失败: ' + (err.message || '未知错误'));
   } finally {
+    // 恢复原始滚动区域样式
+    if (previewScrollArea.value) {
+      previewScrollArea.value.style.maxHeight = originalMaxHeight;
+      previewScrollArea.value.style.overflow = originalOverflow;
+    }
     downloading.value = false;
   }
 };
