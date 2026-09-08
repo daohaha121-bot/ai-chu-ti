@@ -12,9 +12,9 @@
           导出 Excel 成绩单
         </el-button>
 
-        <el-button type="primary" plain @click="exportImage">
+        <el-button type="primary" plain @click="openRosterModal">
           <el-icon class="mr-1"><Picture /></el-icon>
-          导出高清图片 (PNG)
+          导出成绩单高清图片 (PNG)
         </el-button>
       </div>
     </div>
@@ -157,6 +157,15 @@
       :exam="examInfo"
       :system-config="systemConfig"
     />
+
+    <!-- 官方标准化考生成绩总表长图导出弹窗 -->
+    <OfficialExamRosterModal
+      v-model="showRosterModal"
+      :exam="examInfo"
+      :submissions="submissions"
+      :analytics="analytics"
+      :system-config="systemConfig"
+    />
   </div>
 </template>
 
@@ -165,14 +174,20 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import axios from 'axios';
-import html2canvas from 'html2canvas';
 import CandidateCertModal from '@/components/CandidateCertModal.vue';
+import OfficialExamRosterModal from '@/components/OfficialExamRosterModal.vue';
 
 const route = useRoute();
 const loading = ref(false);
 const analytics = ref({ questionAnalytics: [] });
 const submissions = ref([]);
 const examInfo = ref({});
+
+// 官方成绩总表长图导出弹窗
+const showRosterModal = ref(false);
+const openRosterModal = () => {
+  showRosterModal.value = true;
+};
 
 // 成绩证明单弹窗控制
 const showCertModal = ref(false);
@@ -240,27 +255,6 @@ const deleteSubmission = async (submission) => {
 
 const exportExcel = () => {
   window.open(`/api/submissions/export/excel/${route.params.examId}`, '_blank');
-};
-
-const exportImage = async () => {
-  const element = document.getElementById('analytics-report-area');
-  if (!element) return;
-
-  try {
-    ElMessage.info('正在生成高清报表图片...');
-    const canvas = await html2canvas(element, {
-      scale: 2,
-      useCORS: true,
-      backgroundColor: '#ffffff'
-    });
-    const link = document.createElement('a');
-    link.download = `exam_analytics_${route.params.examId}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
-    ElMessage.success('高清图片已成功导出！');
-  } catch (err) {
-    ElMessage.error('图片导出失败');
-  }
 };
 
 onMounted(fetchData);
